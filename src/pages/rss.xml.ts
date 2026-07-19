@@ -10,6 +10,8 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
 import { getBlogCollection, sortMDByDate } from 'astro-pure/server'
+
+export const prerender = true
 import config from 'virtual:config'
 
 // Get dynamic import of images as a map collection

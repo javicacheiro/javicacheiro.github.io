@@ -178,7 +178,10 @@ export default defineConfig({
   ],
   rules,
   theme: {
-    colors: themeColors
+    colors: themeColors,
+    fontFamily: {
+      mono: "var(--font-jetbrains-mono), ui-monospace, 'Cascadia Code', Menlo, monospace"
+    }
   },
   // https://unocss.dev/guide/extracting#limitations
   safelist: [

@@ -131,13 +131,7 @@ if (!images[imagePath])
 
       <Section title='Focus areas'>
         <div class='flex flex-wrap gap-2'>
-          {
-            topics.map((topic) => (
-              <span class='rounded-full border bg-muted px-3 py-1 font-mono text-sm text-muted-foreground'>
-                {topic}
-              </span>
-            ))
-          }
+          {topics.map((topic) => <Button as='button' title={topic} variant='pill' class='font-mono' />)}
         </div>
       </Section>
 
@@ -203,11 +197,11 @@ if (!images[imagePath])
   .terminal-output {
     color: var(--term-fg);
   }
-  .term-link {
-    color: var(--term-green) !important;
+  #terminal-hero .term-link {
+    color: var(--term-green);
     text-decoration: underline;
   }
-  .term-ls {
+  #terminal-hero .term-ls {
     color: var(--term-blue);
   }
   .terminal-line {

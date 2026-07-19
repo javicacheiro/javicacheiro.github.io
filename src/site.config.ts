@@ -1,4 +1,4 @@
-import type { CardListData, Config, IntegrationUserConfig, ThemeUserConfig } from 'astro-pure/types'
+import type { Config, IntegrationUserConfig, ThemeUserConfig } from 'astro-pure/types'
 
 export const theme: ThemeUserConfig = {
   // [Basic]
@@ -78,13 +78,6 @@ export const theme: ThemeUserConfig = {
 }
 
 export const integ: IntegrationUserConfig = {
-  // [Links]
-  // Friend links page is not used on this site; schema requires the key
-  links: {
-    logbook: [],
-    applyTip: [],
-    cacheAvatar: false
-  },
   // [Search]
   pagefind: true,
   // [Quote]
@@ -108,15 +101,10 @@ export const integ: IntegrationUserConfig = {
       className: 'zoomable'
     }
   },
-  // Comment system disabled
+  // Comment system disabled (key is schema-required; components were removed)
   waline: {
     enable: false
   }
-}
-
-export const terms: CardListData = {
-  title: 'Terms content',
-  list: []
 }
 
 const config = { ...theme, integ } as Config

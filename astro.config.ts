@@ -70,7 +70,7 @@ export default defineConfig({
       name: 'JetBrains Mono',
       cssVariable: '--font-jetbrains-mono',
       styles: ['normal'],
-      weights: [400, 700],
+      weights: [400],
       subsets: ['latin'],
       fallbacks: ['monospace']
     }

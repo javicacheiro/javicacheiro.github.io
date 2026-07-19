@@ -24,9 +24,15 @@ const {
 <html lang={config.locale.lang}>
   <head>
     <BaseHead {articleDate} {description} {ogImage} {title} />
-    {/* Default to dark theme for first-time visitors (must run before ThemeProvider) */}
+    {/* Default to dark theme for first-time visitors (must run before ThemeProvider).
+        Trade-off: this pins 'dark' instead of leaving the follow-system default;
+        visitors can still cycle the header toggle back to 'system'. */}
     <script is:inline>
-      if (!localStorage.getItem('theme')) localStorage.setItem('theme', 'dark')
+      try {
+        if (!localStorage.getItem('theme')) localStorage.setItem('theme', 'dark')
+      } catch {
+        /* storage blocked: fall back to the theme's system default */
+      }
     </script>
     <ThemeProvider />
   </head>
@@ -41,9 +47,12 @@ const {
         />
       )
     }
+    {/* data-pagefind-body scopes search indexing to the site's own pages,
+        keeping the legacy presentation decks in public/ out of the index */}
     <div
       id='main-container'
       class='w-full max-w-[70rem] min-h-[100dvh] flex flex-col justify-between'
+      data-pagefind-body
     >
       <Header />
       <div class='flex-1 w-full'>

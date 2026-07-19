@@ -36,11 +36,11 @@ const socialImageURL = new URL(ogImage ? ogImage : config.socialCard, Astro.url)
   }
 </style>
 <style is:global>
+  /* .font-mono resolves via uno.config.ts theme.fontFamily.mono */
   code,
   pre,
   kbd,
-  samp,
-  .font-mono {
+  samp {
     font-family: var(--font-jetbrains-mono), ui-monospace, 'Cascadia Code', Menlo, monospace;
   }
 </style>
@@ -53,8 +53,8 @@ const socialImageURL = new URL(ogImage ? ogImage : config.socialCard, Astro.url)
 <meta content={description} name='description' />
 <meta content={config.author} name='author' />
 
-{/* Theme Color */}
-{/* <meta content='' name='theme-color' /> */}
+{/* Theme Color — content is kept in sync by the theme's ThemeProvider on load/toggle */}
+<meta name='theme-color' content='#1e1e2e' />
 <meta name='color-scheme' content='light dark' />
 
 {/* Open Graph / Facebook */}
