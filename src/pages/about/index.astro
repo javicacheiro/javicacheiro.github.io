@@ -1,0 +1,92 @@
+---
+import { Timeline } from 'astro-pure/user'
+import PageLayout from '@/layouts/CommonPage.astro'
+
+const headings = [
+  { depth: 2, slug: 'what-i-do', text: 'What I Do' },
+  { depth: 2, slug: 'onehealth-dataspace', text: 'OneHealth DataSpace' },
+  { depth: 2, slug: 'topics', text: 'Topics I Write About' },
+  { depth: 2, slug: 'find-me', text: 'Find Me' },
+  { depth: 2, slug: 'about-site', text: 'About This Site' }
+]
+---
+
+<PageLayout title='About' {headings}>
+  <p>
+    Hi, I'm <strong>Javier Cacheiro López</strong> — you may know me as
+    <code>javicacheiro</code>. I'm a PhD working at
+    <a href='https://www.cesga.es' target='_blank'>CESGA</a> (Galicia Supercomputing Center) in
+    Santiago de Compostela, Spain, where I lead the Big Data team and serve as Scientific Director
+    of the <a href='https://dataspace.cesga.es' target='_blank'>OneHealth DataSpace</a>.
+  </p>
+  <p>
+    I'm passionate about technology and science, and I've spent my career at the intersection of
+    both: making supercomputers, big data platforms and cloud infrastructures useful for
+    researchers and companies.
+  </p>
+
+  <h2 id='what-i-do'>What I Do</h2>
+  <ul>
+    <li>
+      <strong>Scientific Director, OneHealth DataSpace</strong> — leading the scientific vision of a
+      sovereign data space for health, animal and environmental data built on CESGA's
+      supercomputing infrastructure.
+    </li>
+    <li>
+      <strong>Big Data team lead at CESGA</strong> — running the Big Data infrastructure and
+      services of the Galicia Supercomputing Center.
+    </li>
+    <li>
+      <strong>HPC &amp; Cloud</strong> — helping science and industry get the most out of
+      high-performance computing and cloud platforms.
+    </li>
+  </ul>
+
+  <h2 id='onehealth-dataspace'>OneHealth DataSpace</h2>
+  <p>
+    The <a href='https://dataspace.cesga.es' target='_blank'>OneHealth DataSpace</a> goes beyond
+    data sharing: it lets organizations <em>share</em> data with sovereignty (controlled access and
+    conditions), <em>analyze</em> it with Big Data tools, <em>compute</em> on CESGA's
+    supercomputing resources (simulations, AI training, genomics), and <em>expose</em> the results
+    as APIs, dashboards or applications. It is funded by the Spanish Ministry for Digital
+    Transformation through NextGenerationEU.
+  </p>
+
+  <h2 id='topics'>Topics I Write About</h2>
+  <ul>
+    <li><strong>HPC</strong> — supercomputing, schedulers, performance</li>
+    <li><strong>Quantum Computing</strong> — where quantum meets HPC</li>
+    <li><strong>AI</strong> — training and serving models on real infrastructure</li>
+    <li><strong>Big Data</strong> — data engineering at scale</li>
+    <li><strong>Cloud</strong> — cloud platforms and infrastructure automation</li>
+    <li><strong>Data Spaces</strong> — sovereign data sharing between organizations</li>
+  </ul>
+
+  <h2 id='find-me'>Find Me</h2>
+  <ul>
+    <li>GitHub: <a href='https://github.com/javicacheiro' target='_blank'>javicacheiro</a></li>
+    <li>
+      LinkedIn: <a href='https://es.linkedin.com/in/javicacheiro' target='_blank'>javicacheiro</a>
+    </li>
+    <li>
+      ORCID: <a href='https://orcid.org/0000-0001-5864-283X' target='_blank'
+        >0000-0001-5864-283X</a
+      >
+    </li>
+  </ul>
+
+  <h2 id='about-site'>About This Site</h2>
+  <Timeline
+    events={[
+      {
+        date: '2016-10-01',
+        content: 'First version of the site, hosting slides of public presentations'
+      },
+      {
+        date: '2026-07-19',
+        content:
+          'Rebuilt with <a href="https://astro.build/" target="_blank">Astro</a> and <a href="https://github.com/cworld1/astro-theme-pure" target="_blank">Astro Theme Pure</a>, hosted on GitHub Pages'
+      }
+    ]}
+  />
+</PageLayout>

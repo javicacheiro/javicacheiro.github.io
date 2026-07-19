@@ -1,0 +1,274 @@
+---
+import { Image } from 'astro:assets'
+
+import { PostPreview } from 'astro-pure/components/pages'
+import { getBlogCollection, sortMDByDate } from 'astro-pure/server'
+import { Button, Icon, Label } from 'astro-pure/user'
+import PageLayout from '@/layouts/BaseLayout.astro'
+import Section from '@/components/home/Section.astro'
+import config from '@/site-config'
+
+const topics = ['HPC', 'Quantum Computing', 'AI', 'Big Data', 'Cloud', 'Data Spaces']
+
+const MAX_POSTS = 10
+const allPosts = await getBlogCollection()
+const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
+
+const imagePath = config.logo.src
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/*.{jpeg,jpg,png,gif,avif,webp}'
+)
+if (!images[imagePath])
+  throw new Error(
+    `"${imagePath}" does not exist in glob: "src/assets/*.{jpeg,jpg,png,gif,avif,webp}"`
+  )
+---
+
+<PageLayout meta={{ title: 'Home' }} highlightColor='#34d399'>
+  <main class='flex w-full flex-col items-center'>
+    <section class='animate mb-10 flex flex-col items-center gap-y-7' id='content-header'>
+      <Image
+        src={images[imagePath]()}
+        alt={config.logo.alt || 'Profile'}
+        class='h-28 w-auto rounded-full border p-1'
+        loading='eager'
+        fetchpriority='high'
+      />
+
+      <div class='flex flex-col items-center gap-y-4'>
+        <h1 class='text-3xl font-medium'>{config.author}</h1>
+        <div class='flex flex-wrap justify-center gap-x-7 gap-y-3'>
+          <Label title='Santiago de Compostela, Spain'>
+            <Icon name='location' class='size-5' slot='icon' />
+          </Label>
+          <Label title='GitHub' as='a' href='https://github.com/javicacheiro' target='_blank'>
+            <Icon name='github' class='size-5' slot='icon' />
+          </Label>
+          <Label
+            title='LinkedIn'
+            as='a'
+            href='https://es.linkedin.com/in/javicacheiro'
+            target='_blank'
+          >
+            <svg
+              slot='icon'
+              class='size-5'
+              viewBox='0 0 24 24'
+              fill='currentColor'
+              aria-hidden='true'
+            >
+              <path
+                d='M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z'
+              ></path>
+            </svg>
+          </Label>
+        </div>
+      </div>
+
+      {/* Terminal hero */}
+      <div
+        id='terminal-hero'
+        class='w-full max-w-2xl overflow-hidden rounded-xl border shadow-md'
+        style='background-color:#0d1117'
+      >
+        <div
+          class='flex items-center gap-x-2 border-b px-4 py-2.5'
+          style='border-color:#21262d;background-color:#161b22'
+        >
+          <span class='size-3 rounded-full' style='background-color:#ff5f56'></span>
+          <span class='size-3 rounded-full' style='background-color:#ffbd2e'></span>
+          <span class='size-3 rounded-full' style='background-color:#27c93f'></span>
+          <span class='ms-2 font-mono text-xs' style='color:#8b949e'>javi@cesga: ~</span>
+        </div>
+        <div id='terminal-body' class='px-4 py-4 font-mono text-sm leading-relaxed'>
+          <div class='terminal-line' data-cmd='whoami'>
+            <span class='terminal-output' style='color:#e6edf3'
+              >Javier Cacheiro López — PhD · HPC &amp; Big Data at CESGA</span
+            >
+          </div>
+          <div class='terminal-line' data-cmd='cat role.txt'>
+            <span class='terminal-output' style='color:#e6edf3'
+              >Scientific Director · <a
+                href='https://dataspace.cesga.es'
+                target='_blank'
+                style='color:#7ee787;text-decoration:underline'>OneHealth DataSpace</a
+              ></span
+            >
+          </div>
+          <div class='terminal-line' data-cmd='ls topics/'>
+            <span class='terminal-output' style='color:#79c0ff'
+              >hpc quantum-computing ai big-data cloud data-spaces</span
+            >
+          </div>
+          <div class='terminal-line' data-cmd=''>
+            <span class='terminal-output'></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id='content' class='animate flex flex-col gap-y-10 md:w-4/5 lg:w-5/6'>
+      <Section title='About'>
+        <p class='text-muted-foreground'>
+          I am the Scientific Director of the{' '}
+          <a class='text-primary' href='https://dataspace.cesga.es' target='_blank'
+            >OneHealth DataSpace</a
+          >{' '}
+          at <a class='text-primary' href='https://www.cesga.es' target='_blank'>CESGA</a> (Galicia
+          Supercomputing Center), where I also lead the Big Data team. I hold a PhD and I am
+          passionate about technology and science: from supercomputers and quantum machines to the
+          data platforms that turn raw data into knowledge.
+        </p>
+        <p class='text-muted-foreground'>
+          Here I write about the things I work with every day: High Performance Computing, Quantum
+          Computing, AI, Big Data, Cloud and Data Spaces.
+        </p>
+        <Button title='More about me' class='w-fit self-end' href='/about' variant='ahead' />
+      </Section>
+
+      <Section title='Focus areas'>
+        <div class='flex flex-wrap gap-2'>
+          {
+            topics.map((topic) => (
+              <span class='rounded-full border bg-muted px-3 py-1 font-mono text-sm text-muted-foreground'>
+                {topic}
+              </span>
+            ))
+          }
+        </div>
+      </Section>
+
+      {
+        allPostsByDate.length > 0 && (
+          <Section title='Posts'>
+            <ul class='flex flex-col gap-y-1.5 sm:gap-y-2'>
+              {allPostsByDate.map((p) => (
+                <li class='flex flex-col gap-x-2 sm:flex-row'>
+                  <PostPreview post={p} />
+                </li>
+              ))}
+            </ul>
+            <Button title='More posts' class='w-fit self-end' href='/blog' variant='ahead' />
+          </Section>
+        )
+      }
+
+      <Section title='Talks archive'>
+        <p class='text-muted-foreground'>Slides from some past public presentations:</p>
+        <ul class='ms-4 list-disc text-muted-foreground'>
+          <li>
+            <a class='text-primary' href='/infoday' target='_blank'>Fortissimo 2 Infoday GAIN</a>
+          </li>
+          <li>
+            <a class='text-primary' href='/workshopml' target='_blank'
+              >Workshop Machine Learning Galicia 2016</a
+            >
+          </li>
+          <li>
+            <a class='text-primary' href='/workshop/presentation' target='_blank'
+              >Workshop BD|CESGA</a
+            >
+          </li>
+        </ul>
+      </Section>
+    </div>
+  </main>
+</PageLayout>
+
+<style is:global>
+  .terminal-line {
+    margin-bottom: 0.25rem;
+  }
+  .terminal-line .prompt {
+    color: #7ee787;
+  }
+  .terminal-line .cmd {
+    color: #e6edf3;
+  }
+  #terminal-body .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.1em;
+    vertical-align: text-bottom;
+    background-color: #7ee787;
+    animation: cursor-blink 1.1s steps(1) infinite;
+  }
+  @keyframes cursor-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #terminal-body .cursor {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  function typeTerminal() {
+    const body = document.getElementById('terminal-body')
+    if (!body || body.dataset.typed === 'true') return
+    body.dataset.typed = 'true'
+
+    const lines = Array.from(body.querySelectorAll<HTMLElement>('.terminal-line'))
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Prepare each line: prompt + command (typed) + output (revealed after)
+    const prepared = lines.map((line) => {
+      const cmd = line.dataset.cmd ?? ''
+      const output = line.querySelector<HTMLElement>('.terminal-output')
+      if (output) output.style.display = 'none'
+      const prompt = document.createElement('span')
+      prompt.className = 'prompt'
+      prompt.textContent = '$ '
+      const cmdEl = document.createElement('span')
+      cmdEl.className = 'cmd'
+      line.prepend(prompt, cmdEl, document.createElement('br'))
+      // The last line (empty cmd) only shows the prompt + blinking cursor
+      if (cmd === '') line.querySelector('br')?.remove()
+      return { line, cmd, cmdEl, output }
+    })
+
+    const cursor = document.createElement('span')
+    cursor.className = 'cursor'
+
+    if (reduced) {
+      for (const { cmd, cmdEl, output } of prepared) {
+        cmdEl.textContent = cmd
+        if (output) output.style.display = ''
+      }
+      prepared[prepared.length - 1]?.line.append(cursor)
+      return
+    }
+
+    let i = 0
+    function typeLine() {
+      const item = prepared[i]
+      if (!item) return
+      const { line, cmd, cmdEl, output } = item
+      if (cmd === '') {
+        line.append(cursor)
+        return
+      }
+      cmdEl.after(cursor)
+      let pos = 0
+      const tick = () => {
+        cmdEl.textContent = cmd.slice(0, ++pos)
+        if (pos < cmd.length) {
+          setTimeout(tick, 40 + Math.random() * 50)
+        } else {
+          cursor.remove()
+          if (output) output.style.display = ''
+          i++
+          setTimeout(typeLine, 350)
+        }
+      }
+      setTimeout(tick, 200)
+    }
+    typeLine()
+  }
+
+  typeTerminal()
+  document.addEventListener('astro:page-load', typeTerminal)
+</script>
