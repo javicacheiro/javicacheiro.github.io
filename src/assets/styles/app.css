@@ -1,7 +1,7 @@
 /* Theme */
 :root {
-  /* Primary: muted terminal green */
-  --primary: 150 45% 32%;
+  /* Primary */
+  --primary: 200 29% 45%;
   /* Foreground */
   --foreground: 240 10% 3.9%;
   --muted-foreground: 240 3.8% 28.1%;
@@ -17,8 +17,8 @@
   --radius: 0.5rem;
 }
 .dark {
-  /* Primary: terminal phosphor green */
-  --primary: 150 70% 68%;
+  /* Primary: Catppuccin Mocha green, matching the terminal hero */
+  --primary: 115 54% 76%;
   /* Foreground */
   --foreground: 0 0% 98%;
   --muted-foreground: 240 5% 74.9%;
