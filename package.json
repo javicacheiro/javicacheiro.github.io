@@ -19,13 +19,13 @@
   "dependencies": {
     "@astrojs/check": "0.9.9",
     "@astrojs/compiler-rs": "^0.1.10",
-    "@astrojs/rss": "4.0.18",
+    "@astrojs/rss": "4.0.19",
     "astro": "6.2.1",
     "astro-pure": "1.4.6",
     "katex": "^0.16.45",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.4",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
@@ -35,5 +35,8 @@
     "eslint-plugin-astro": "^1.7.0",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1"
+  },
+  "overrides": {
+    "sharp": "$sharp"
   }
 }
