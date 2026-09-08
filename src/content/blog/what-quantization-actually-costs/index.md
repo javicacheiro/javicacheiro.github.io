@@ -695,7 +695,7 @@ The GPU memory budget is fixed, and I like to use a higher utilization setting (
 | NVFP4-unsloth | 21.8 | 22.3 | 3.27 | 1.86 | 64.6 | 2,069,557 | 1.85× |
 | NVFP4-RadixArk | — | 21.1 | 3.34 | 1.86 | 65.8 | 2,107,883 | 1.88× |
 | AWQ-INT4 | 19.6 | 20.1 | 3.34 | 1.86 | 66.8 | 2,138,543 | 1.91× |
-| **INT4-RedHat** | **18.1** | **18.3** | 3.34 | 1.86 | **68.6** | **2,196,797** | **1.96×** |
+| INT4-RedHat | 18.1 | 18.3 | 3.34 | 1.86 | 68.6 | 2,196,797 | 1.96× |
 
 
 ## Conclusions
