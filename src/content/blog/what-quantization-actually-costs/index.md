@@ -1,6 +1,6 @@
 ---
 title: 'Measuring how much quantization affects model quality'
-description: 'I benchmark different variants of Qwen3.8-27B to measure what is the effect of quantization'
+description: 'I benchmark different variants of Qwen3.8-27B to measure the effect of quantization'
 publishDate: 2026-09-06
 tags:
   - ai
@@ -31,21 +31,21 @@ tags:
 .qz .key i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: .35rem; vertical-align: -1px; }
 </style>
 
-It is really fun to run models locally, testing different variants, and experimenting with different configurations.
+It is really fun to run models locally, testing different variants and experimenting with different configurations.
 
-For a given model you generally have, besides the main BF16 checkpoint, several quantized checkpoints which aim is to reduce its size and increase performance.
+For a given model you generally have, besides the main BF16 checkpoint, several quantized checkpoints whose aim is to reduce its size and increase performance.
 
-When running in large servers with 8xB300 GPUs and 2.1TB of HBM memory, I usually do not expend much time selecting the quantization. In these cases what I mainly look at is the tuning for throughput or latency, using TP. When the BF16 checkpoint does not fit the memory, I just choose the FP8 or NVFP4 variants because they have hardware support in Blackwell and so they perform really well.
+When running on large servers with 8xB300 GPUs and 2.1TB of HBM memory, I usually do not spend much time selecting the quantization. In these cases what I mainly look at is the tuning for throughput or latency, using tensor parallelism. When the BF16 checkpoint does not fit in memory, I just choose the FP8 or NVFP4 variants, because they have hardware support in Blackwell and so they perform really well.
 
-But there are cases where I want to run in a more modest server, or even in a 4090 GPU. In these cases is when having a quantized checkpoint helps a lot, because it can fit in the VRAM that you have.
+But there are cases where I want to run on a more modest server, or even on a 4090 GPU. This is when having a quantized checkpoint helps a lot, because it can fit in the VRAM that you have.
 
-At this point, it is when things start to get a little messy because there are a lot of ways to quantize a model, and, for the popular models we have at our disposal many many readily-available checkpoints.
+It is also when things start to get a little messy, because there are a lot of ways to quantize a model and, for the popular ones, we have many readily available checkpoints at our disposal.
 
-With so many options, sometimes is not very clear how much a given quantization affects the quality of the model. In some cases the model card includes information about top-1% accuracy, in others there are no clues about how much the quantization degraded the checkpoint. We have all seen cases where aggresive quantizations can drop dramatically the quality of the model.
+With so many options, sometimes it is not very clear how much a given quantization affects the quality of the model. In some cases the model card includes information about top-1% accuracy; in others there are no clues about how much the quantization degraded the checkpoint. We have all seen cases where aggressive quantizations drop the quality of the model dramatically.
 
-So the best way to know for sure, it is to perform some bechmarks.
+So the best way to know for sure is to run some benchmarks.
 
-In this post I will show the results for **Qwen3.8-27**, one of my fauvorite models right now at this model size. I use it both for running inference as well as to create fine-tuned versions.
+In this post I will show the results for **Qwen3.8-27B**, one of my favourite models right now at this size. I use it both for running inference and for creating fine-tuned versions.
 
 As you will see, quantization does a pretty good job, but the model card alone is not enough to know which checkpoint is better.
 
@@ -53,7 +53,7 @@ If you want, you can also go straight to the [results](#results).
 
 ## Configuration
 
-**Qwen3.8-27B** served with **vLLM** in a RTX PRO 6000 (same options: greedy decoding and reasoning mode).
+**Qwen3.8-27B** served with **vLLM** on an RTX PRO 6000 (the same options in all cases: greedy decoding and reasoning mode enabled).
 
 These are the checkpoints that were evaluated:
 
@@ -87,12 +87,11 @@ vllm serve "${MODEL}" \
 
 For the one-shot benchmarks I use [lm-eval](https://github.com/EleutherAI/lm-evaluation-harness).
 
-## Benchmarks:
+## Benchmarks
 
 - **Agentic performance**:
-  - **SWE-bench Verified**: the model drives a
-  terminal to fix real GitHub issues in real repositories until the project's
-  own tests pass.
+  - **SWE-bench Verified**: the model drives a terminal to fix real GitHub
+    issues in real repositories until the project's own tests pass.
 
 - **General accuracy in one-shot tasks**:
   - **MMLU-Pro**: multiple-choice general knowledge and reasoning across 14
@@ -148,13 +147,13 @@ For the one-shot benchmarks I use [lm-eval](https://github.com/EleutherAI/lm-eva
   </svg>
   <figcaption>
     Paired McNemar test against BF16, counting only instances where both
-    variants reached a veredict.
+    variants reached a verdict.
   </figcaption>
 </figure>
 
-> Five of the quantizations are statistically indistinguishable from BF16 on the agentic coding benchmark, only **NVFP4-Inferact** degrades considerably.
+> Four of the five quantizations are statistically indistinguishable from BF16 on the agentic coding benchmark; only **NVFP4-Inferact** degrades considerably.
 
-Understanding why NVFP4-Inferact performs much worse than the other NVFP4 checkpoints took some research. Looking at the model cards it was not clear what was the difference with the other NVFP4 checkpoints, only looking in the model repo it appeared the reason: Inferact quantizes **activations alongside the weights**.
+Understanding why NVFP4-Inferact performs much worse than the other NVFP4 checkpoints took some research. The model cards do not make the difference clear, and the reason only shows up in the model repo: Inferact quantizes **activations alongside the weights**.
 
 <figure class="qz">
   <svg viewBox="0 0 640 226" role="img" aria-label="Quantization scheme by checkpoint. FP8 uses 8-bit weights and activations. AWQ-INT4 and INT4-RedHat use 4-bit weights with 16-bit activations. NVFP4-unsloth uses 4-bit on MLP only with the rest at 8-bit. NVFP4-Inferact uses 4-bit weights and activations everywhere.">
@@ -197,21 +196,21 @@ Understanding why NVFP4-Inferact performs much worse than the other NVFP4 checkp
 
 
 > Quantization does a pretty good job.
-> The only thing to avoid is quantizing the activations to 4-bits because that degrades model performance in agentic coding tasks.
+> The only thing to avoid is quantizing the activations to 4 bits, because that degrades model performance in agentic coding tasks.
 > Unfortunately, you have to manually open `config_groups` in the
 > checkpoint config and read it to see which checkpoints do that.
 
 
 ### General accuracy in one-shot tasks
 
-Two BF16 runs are plotted on every chart, representing the run-to-run noise in that benchmark.
+Two BF16 runs are plotted on every chart, so the difference between them represents the run-to-run noise in that benchmark.
 
-In each bar of the figures we have: correct answers, incorrect answers and no-answer. I prefer to split failed answers between wrong and no-answer, because it is not the same to answer wrong than to consume all output tokens before answering.
+Each bar in the figures is split into correct answers, incorrect answers and no-answer. I prefer to separate failed answers into wrong and no-answer, because answering wrongly is not the same as consuming all the output tokens before answering.
 
-To have a better view of how the checkpoints compare, apart from the raw benchmark score, I also compare them with the base BF16 variant using a paired McNemar test to compare the results. The McNemar test ignores the cases where the models agree, and focuses on the disagreements, ie. in the questions that they answer differently.
+To have a better view of how the checkpoints compare, apart from the raw benchmark score, I also compare each one against the base BF16 variant using a paired McNemar test. The test ignores the cases where the two models agree and focuses on the disagreements, i.e. the questions that they answer differently.
 
 A bar is marked in red when a paired McNemar test against BF16 returned
-`p < 0.05` on that benchmark (it means that there is a important difference with the FP16 checkpoint); a ▲ marks the one case where a variant is
+`p < 0.05` on that benchmark, which means that there is an important difference from the BF16 checkpoint; a ▲ marks the one case where a variant is
 significantly *better*.
 
 <figure class="qz">
@@ -272,7 +271,7 @@ significantly *better*.
     <text class="sub" x="510" y="228" fill="var(--bad)">p = 0.00349</text>
   </svg>
   <figcaption>
-    INT4-RedHat's has the lowest score but it is mainly due to a large percent of no-answer results. See below.
+    INT4-RedHat has the lowest score, but this is mainly due to a large percentage of no-answer results. See below.
   </figcaption>
 </figure>
 
@@ -336,7 +335,7 @@ significantly *better*.
     <text class="sub" x="510" y="228" fill="var(--bad)">p < 1e-50</text>
   </svg>
   <figcaption>
-    Four variants highlighted because they separate from BF16 in the paired McNemar test. NVFP4-Inferact checkpoint is the most affected, so 4-bit activation quantization seems to be highly impacted by 4-bit activation quantization like as in the case of SWE-bench Verified.
+    Four variants are highlighted because they separate from BF16 in the paired McNemar test. The NVFP4-Inferact checkpoint is the most affected, so this benchmark also seems to be highly impacted by 4-bit activation quantization, as was the case in SWE-bench Verified.
   </figcaption>
 </figure>
 
@@ -456,7 +455,7 @@ significantly *better*.
     <text class="val" x="464" y="228">93.1%</text>
   </svg>
   <figcaption>
-    All perform well creating short Python functions.
+    All perform well at creating short Python functions.
   </figcaption>
 </figure>
 
@@ -517,7 +516,7 @@ significantly *better*.
     <text class="val" x="464" y="228">85.0%</text>
   </svg>
   <figcaption>
-    NVFP4-RadixArk at p = 0.0127 (▲) shows better performance than BF16 in McNemar test, but it seems just due to chance across 42 comparisons.
+    NVFP4-RadixArk at p = 0.0127 (▲) shows better performance than BF16 in the McNemar test, but this seems to be just due to chance across 42 comparisons.
   </figcaption>
 </figure>
 
@@ -577,7 +576,7 @@ significantly *better*.
     <text class="val" x="464" y="228">56.6%</text>
   </svg>
   <figcaption>
-    A large percent of no-anwers in all variants, roughly 30%, and just a small set of 198 questions, so the final reported numbers are not statistically significant.
+    A large percentage of no-answers in all variants, roughly 30%, and just a small set of 198 questions, so the final reported numbers are not statistically significant.
   </figcaption>
 </figure>
 
@@ -617,24 +616,24 @@ checkpoint not significantly worse than BF16. This is why having both the raw sc
     <text class="sub" x="434" y="265">← highest of any variant</text>
   </svg>
   <figcaption>
-    Benchmarks evaluations score an empty response identically
+    Benchmark evaluations score an empty response identically
     to a wrong one, so a model that fails to <em>finish</em> looks like a model
-    that answers <em>badly</em>. INT4-RedHat is penalized by this because it has the higher no-answer rate.
+    that answers <em>badly</em>. INT4-RedHat is penalized by this because it has the highest no-answer rate.
   </figcaption>
 </figure>
 
-Looking at the details, **INT4-RedHat's low score comes from a the higher percentage of no-answer results**.
-This happens when the model reasons past its token budget and so it returns nothing as answer.
+Looking at the details, **INT4-RedHat's low score comes from its high percentage of no-answer results**.
+This happens when the model reasons past its token budget and so returns no answer at all.
 **On the questions it does answer, it is the least degraded 4-bit checkpoint.**
 
-Looking at the some of the specific questions that it does not answer, the model is not looping.
-The traces are progressing reasoning, cut off mid-stream by the budget. Increasing the budget improves the results.
+Looking at some of the specific questions that it does not answer, the model is not looping.
+The traces show reasoning that is making progress, cut off mid-stream by the budget. Increasing the budget improves the results.
 For some reason this checkpoint needs more reasoning than the others.
 
-So ranking on the raw benchmark numbers INT4-RedHat is the worse checkpoint, but when ranking on the paired
+So when ranking on the raw benchmark numbers INT4-RedHat is the worst checkpoint, but when ranking on the paired
 test it is the best 4-bit checkpoint in the set.
 
-Suprisingly, on SWE-bench the same checkpoint had **zero** non-termination and performed on par with BF16.
+Surprisingly, on SWE-bench the same checkpoint had **zero** non-termination and performed on par with BF16.
 
 ## Memory usage
 
@@ -686,7 +685,7 @@ This is the memory usage for each checkpoint, as reported by vLLM on one GPU:
   </figcaption>
 </figure>
 
-The GPU memory budget is fixed, and I like to use a higher utilization setting (`--gpu-memory-utilization 0.95`), so what it is not used is assigned to the KV cache:
+The GPU memory budget is fixed, and I like to use a higher utilization setting (`--gpu-memory-utilization 0.95`), so whatever the weights do not use is assigned to the KV cache:
 
 | variant | on disk | weights<br/>(+overhead) | peak<br/>activations | CUDA<br/>graphs | KV cache | KV tokens | vs BF16 |
 |---|--:|--:|--:|--:|--:|--:|--:|
@@ -707,9 +706,9 @@ that you cannot tell them apart, but you have to be careful with the checkpoint 
 In the case of **Qwen3.8-27B**:
 
 - FP8 is indistinguishable from BF16.
-- 4-bit variants are also good, but you should choose carefuly based on the use case.
-- NVFP4-Inferact is the one that performs worse, due to 4-bit activations.
-- INT4-RedHat performs very well, but it has a very high no-answer rate in one-shot benchmarks
+- 4-bit variants are also good, but you should choose carefully based on the use case.
+- NVFP4-Inferact is the one that performs worst, due to 4-bit activations.
+- INT4-RedHat performs very well being the smallest in size, but it has a very high no-answer rate in one-shot benchmarks.
 
 This is the final summary:
 
@@ -721,4 +720,4 @@ This is the final summary:
 | NVFP4-unsloth | 21.3 GiB | 58% | significant on BBH only |
 | NVFP4-RadixArk | 20.0 GiB | 61% | significant on BBH only |
 | AWQ-INT4 | 19.2 GiB | 62% | significant on BBH and MMLU-Pro |
-| INT4-RedHat | 17.7 GiB | 65% | small, but highest no answer rate |
+| INT4-RedHat | 17.7 GiB | 65% | small, but highest no-answer rate |
