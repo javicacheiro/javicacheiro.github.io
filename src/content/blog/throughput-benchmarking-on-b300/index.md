@@ -2,7 +2,6 @@
 title: 'Serving LLMs on a single 8×B300 server'
 description: 'Measuring the throughput of five large models on one 8xB300 server.'
 publishDate: 2026-09-10
-draft: false
 tags:
   - ai
   - llm
