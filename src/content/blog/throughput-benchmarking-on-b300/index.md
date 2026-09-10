@@ -1,8 +1,8 @@
 ---
-title: 'How fast can we serve local models using one B300 server?'
-description: 'Measuring the throughput of seven very large models on one 8xB300 server.'
+title: 'Serving LLMs on a single 8×B300 server'
+description: 'Measuring the throughput of five large models on one 8xB300 server.'
 publishDate: 2026-09-10
-draft: true
+draft: false
 tags:
   - ai
   - llm
@@ -31,23 +31,23 @@ tags:
 .qz .ax  { font-size: 11px; fill: var(--dim); }
 </style>
 
-Lately, I have been playing a lot with really large local models for different use cases where it is very important to keep full control of the data .
+Lately, I have been playing a lot with really large local models for different use cases where it is very important to keep full control of the data.
 
 There are really good open-weight models right now that offer state-of-the-art performance, but to run them you need really powerful GPUs with a lot of VRAM.
 
-One of the more versatile nodes for this task, as well as for training, are B300 nodes, these nodes have 8 NVIDIA B300 GPUS, each one with 268GiB of VRAM, that means 2.1TB of VRAM in one node.
+One of the most versatile nodes for this task, as well as for training, is the B300 node: eight NVIDIA B300 GPUs, each one with 268 GiB of VRAM, which means 2.1 TB of VRAM in a single node.
 
-This high amount of VRAM in just one node, is one of the reasons why B300 nodes are in such high demanded nowadays.
+This high amount of VRAM in just one node is one of the reasons why B300 nodes are in such high demand nowadays.
 
-If you compare with an equivalent B200 node (the next GPU), it has 1.4TiB of VRAM, so roughly 700GB less.
+If you compare with an equivalent B200 node (the next GPU), it has 1.4 TB of VRAM, so roughly 700 GB less.
 
-The great advantage of having 2TB of VRAM is that with just one node you can run some of the frontier open-weight models right now without having to enter the wonderful world of multi-node inference and the fun of debugging the interconnection when you do not get the expected throughput (I can talk about that in a different post).
+The great advantage of having 2 TB of VRAM is that with just one node you can run some of the frontier open-weight models right now without having to enter the wonderful world of multi-node inference and the fun of debugging the interconnection when you do not get the expected throughput (I can talk about that in a different post).
 
-To measure how much one of this nodes can offer, I benchmarked five large models to see how much performance we can get for local inference.
+To measure how much one of these nodes can offer, I benchmarked five large models to see how much performance we can get for local inference.
 
 ## Models tested
 
-Parameter counts are complex this comparison because several of the models that I benchmarked are mixture-of-experts, and published counts mix total and active parameters. So instead of the number from the model card, I use the measured VRAM consumption from **what vLLM reported during loading**, summed across the eight GPUs:
+Parameter counts complicate this comparison because several of the models that I benchmarked are mixture-of-experts, and published counts mix total and active parameters. So instead of the number from the model card, I use the measured VRAM consumption from **what vLLM reported during loading**, summed across the eight GPUs:
 
 <figure class="qz">
   <svg viewBox="0 0 640 201" role="img" aria-label="Weight footprint. Kimi-K3 1,532 GiB, GLM-5.2 BF16 1,412 GiB, Qwen3.8-2.4T 1,340 GiB, DeepSeek-V4-Pro 850 GiB, GLM-5.2 FP8 714 GiB.">
@@ -87,12 +87,12 @@ Parameter counts are complex this comparison because several of the models that 
 
 ## Workloads
 
-Using the great [GuideLLM](https://github.com/vllm-project/guidellm) framework I created seven different workload, representing different types of usage.
-They differ only in how many tokens go in and how many come out, but those numbers are very important because the affect performance a lot.
+Using the great [GuideLLM](https://github.com/vllm-project/guidellm) framework I created seven different workloads, representing different types of usage.
+They differ only in how many tokens go in and how many come out, but those numbers are very important because they affect performance a lot.
 
 | workload | in → out | use case description |
 |---|--:|---|
-| **CHAT-S** | 2,048 → 512 | Ordinary interactive chat: short assistant turns. Latency-dominated.|
+| **CHAT-S** | 2,048 → 512 | Ordinary interactive chat: short assistant turns. Latency-dominated. |
 | **CHAT-L** | 32,768 → 2,048 | A long technical conversation with accumulated history and detailed answers. |
 | **CODE-I** | 16,384 → 2,048 | Interactive coding assistant: explain this, fix this, review this. |
 | **CODE-A** | 65,536 → 4,096 | A coding-agent call with a repository in context. |
@@ -100,14 +100,14 @@ They differ only in how many tokens go in and how many come out, but those numbe
 | **DOC-L** | 131,072 → 2,048 | Long-document analysis and RAG: reports, logs, retrieved context. Prefill-dominated. |
 | **BATCH-D** | 4,096 → 8,192 | Decode-heavy batch generation. Approximates maximum sustained output capacity. |
 
-**BATCH-D** runs with reasoning disabled and forces `ignore_eos` so the model cannot stop early, so it is really a maximum throughput probe.
-**API-S** also runs with reasoning disabled, the other five has reasoning enabled.
+**BATCH-D** runs with reasoning disabled and forces `ignore_eos` so the model cannot stop early, which makes it a maximum throughput probe.
+**API-S** also runs with reasoning disabled; the other five have reasoning enabled.
 
 ## Results
 
-The metric reported here is the <code>server_output_tps</code> as reported by vLLM.
+The metric reported here is <code>server_output_tps</code>, as reported by vLLM.
 
-Let's start with the raw ranking using the BATCH-D workload (the one where we can get more throughput):
+Let's start with the raw ranking using the BATCH-D workload (the one where we can get the most throughput):
 
 <figure class="qz">
   <svg viewBox="0 0 640 201" role="img" aria-label="Peak batch throughput. DeepSeek-V4-Pro 9,183, GLM-5.2 FP8 7,204, Qwen3.8-2.4T 6,168, Kimi-K3 4,422, GLM-5.2 BF16 4,360.">
@@ -146,13 +146,13 @@ Let's start with the raw ranking using the BATCH-D workload (the one where we ca
   </figcaption>
 </figure>
 
-**DeepSeek-V4-Pro leads at 9,183 tok/s**, 27% ahead of GLM-5.2 FP8 even being 19% larger.
+**DeepSeek-V4-Pro leads at 9,183 tok/s**, 27% ahead of GLM-5.2 FP8 even though it is 19% larger.
 
-Kimi-K3 and GLM-5.2 BF16 are very close, but **the great surprise is Qwen3.8-2.4T at 6,168 tok/s** being of similar size than Kimi-K3 and GLM-5.2 BF16 but performing much faster.
+Kimi-K3 and GLM-5.2 BF16 are very close, but **the great surprise is Qwen3.8-2.4T at 6,168 tok/s**, which is of a similar size to Kimi-K3 and GLM-5.2 BF16 but performs much faster.
 
 ## Comparing within size tiers
 
-Even all being state-of-the-art models, the difference in size is important so it is more fair to compare them establishing to tiers: mid tier and large tier, depending on the size:
+Even though they are all state-of-the-art models, the difference in size is important, so it is fairer to compare them by establishing two tiers, mid and large, depending on the size:
 
 | tier | model | footprint | BATCH-D | CHAT-S |
 |---|---|--:|--:|--:|
@@ -162,7 +162,7 @@ Even all being state-of-the-art models, the difference in size is important so i
 | | Kimi-K3 | 1,532 GiB | 4,422 | 2,880 |
 | | GLM-5.2 BF16 | 1,412 GiB | 4,360 | 3,658 |
 
-This way we have that:
+Read this way:
 
 - **In the mid tier, DeepSeek-V4-Pro beats GLM-5.2 FP8 by 27%** on batch
   throughput while being 19% *larger*.
@@ -171,7 +171,7 @@ This way we have that:
 
 ## Individual workload results
 
-Here are the Individual results of the seven workloads, with the concurrency numbers (how many clients run at the same time) reported on the right of each bar:
+Here are the individual results for the seven workloads, with the concurrency numbers (how many clients run at the same time) reported to the right of each bar:
 
 <figure class="qz">
   <svg viewBox="0 0 640 174" role="img" aria-label="API-S peak output throughput, short structured API request. DeepSeek-V4-Pro 3,759, GLM-5.2 FP8 2,684, GLM-5.2 BF16 2,617, Qwen3.8-2.4T 2,443, Kimi-K3 1,651.">
@@ -450,32 +450,32 @@ Here are the Individual results of the seven workloads, with the concurrency num
   <figcaption>
     <strong>BATCH-D — 4,096 in → 8,192 out.</strong> Decode-heavy batch
     generation with EOS suppressed, so the model cannot stop early.
-    Allows to measure peak performance.
+    It allows us to measure peak performance.
   </figcaption>
 </figure>
 
 ## Latency
 
-In this benchmark we focus mainly in throughput, but there is another important aspect to measure that is latency (how long you have to wait for the first token to appear).
+In this benchmark we focus mainly on throughput, but there is another important aspect to measure: latency (how long you have to wait for the first token to appear).
 
-So I measure time-to-first-token p95 at a fixed load of 256 concurrent
-requests, time-to-first-token. It  spreads over a factor of **2.4** across the
-five models, against a factor of 1.7 in throughput at the same level of concurrency.
+So I measured time-to-first-token p95 at a fixed load of 256 concurrent
+requests. It spreads over a factor of **2.4** across the five models, against a
+factor of 1.7 in throughput at the same level of concurrency.
 
 | model | TTFT p95 @ c256 | tok/s @ c256 |
-|---|--:|--:|--:|
+|---|--:|--:|
 | DeepSeek-V4-Pro | 9,852 ms | 4,237 |
 | GLM-5.2 BF16 | 13,155 ms | 3,658 |
 | GLM-5.2 FP8 | 13,214 ms | 3,989 |
 | Qwen3.8-2.4T | 16,394 ms | 3,241 |
 | Kimi-K3 | 23,918 ms | 2,460 |
 
-Kimi-K3 at 23.9 seconds to first token is by far the slowest so you have to balance between throughput or latency.
+Kimi-K3 at 23.9 seconds to first token is by far the slowest, so you have to balance throughput against latency.
 
 ## DeepSeek-V4-Flash
 
-Everything above compares five models between 714 GiB and 1,532 GiB. But just for measuring how much performance we can get in this server with a more modest model,
-I also measured **DeepSeek-V4-Flash** that is much smaller: 170 GiB size.
+Everything above compares five models between 714 GiB and 1,532 GiB. But just for measuring how much performance we can get on this server with a more modest model,
+I also measured **DeepSeek-V4-Flash**, which is much smaller: 170 GiB.
 
 <figure class="qz">
   <svg viewBox="0 0 640 242" role="img" aria-label="DeepSeek-V4-Flash peak output throughput across all seven workloads. BATCH-D 15,484, CHAT-S 9,010, API-S 6,404, CODE-I 4,825, CHAT-L 2,482, CODE-A 2,471, DOC-L 634.">
@@ -529,4 +529,5 @@ I also measured **DeepSeek-V4-Flash** that is much smaller: 170 GiB size.
 </figure>
 
 ## Conclusions
-With just one B300 node we can serve lots of concurrent results even for state-of-the-art models.
+
+With just one B300 node we can serve lots of concurrent requests, even for state-of-the-art models.
