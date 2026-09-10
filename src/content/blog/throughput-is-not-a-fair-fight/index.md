@@ -53,7 +53,7 @@ the checkpoints are 4-bit. So instead of a number from a model card, I use one I
 measured — **what vLLM reported loading**, summed across the eight GPUs:
 
 <figure class="qz">
-  <svg viewBox="0 0 640 201" role="img" aria-label="Weight footprint. GLM-5.2 FP8 714 GiB, DeepSeek-V4-Pro 850 GiB, Qwen3.8-2.4T 1,340 GiB, GLM-5.2 bf16 1,412 GiB, Kimi-K3 1,532 GiB.">
+  <svg viewBox="0 0 640 201" role="img" aria-label="Weight footprint. Kimi-K3 1,532 GiB, GLM-5.2 bf16 1,412 GiB, Qwen3.8-2.4T 1,340 GiB, DeepSeek-V4-Pro 850 GiB, GLM-5.2 FP8 714 GiB.">
     <line x1="279" y1="22" x2="279" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="279" y="18" text-anchor="middle">500 GiB</text>
     <line x1="402" y1="22" x2="402" y2="161" stroke="var(--grid)"/>
@@ -61,26 +61,26 @@ measured — **what vLLM reported loading**, summed across the eight GPUs:
     <line x1="525" y1="22" x2="525" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="525" y="18" text-anchor="middle">1,500 GiB</text>
     <text class="ax" x="156" y="195" text-anchor="start">Weight footprint — measured across the 8-GPU node, precision as served</text>
-    <text class="lab" x="148" y="45" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="56" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="34" width="176" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="340" y="46">714 GiB</text>
-    <text class="lab" x="148" y="72" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="83" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="61" width="209" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="373" y="73">850 GiB</text>
+    <text class="lab" x="148" y="45" text-anchor="end">Kimi-K3</text>
+    <text class="sub" x="148" y="56" text-anchor="end">MXFP4 · 1,532 GiB</text>
+    <rect x="156" y="34" width="377" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="541" y="46">1,532 GiB</text>
+    <text class="lab" x="148" y="72" text-anchor="end">GLM-5.2 bf16</text>
+    <text class="sub" x="148" y="83" text-anchor="end">bf16 · 1,412 GiB</text>
+    <rect x="156" y="61" width="348" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="512" y="73">1,412 GiB</text>
     <text class="lab" x="148" y="99" text-anchor="end">Qwen3.8-2.4T</text>
     <text class="sub" x="148" y="110" text-anchor="end">NVFP4 · 1,340 GiB</text>
     <rect x="156" y="88" width="330" height="15" rx="3" fill="var(--ok)"/>
     <text class="val" x="494" y="100">1,340 GiB</text>
-    <text class="lab" x="148" y="126" text-anchor="end">GLM-5.2 bf16</text>
-    <text class="sub" x="148" y="137" text-anchor="end">bf16 · 1,412 GiB</text>
-    <rect x="156" y="115" width="348" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="512" y="127">1,412 GiB</text>
-    <text class="lab" x="148" y="153" text-anchor="end">Kimi-K3</text>
-    <text class="sub" x="148" y="164" text-anchor="end">MXFP4 · 1,532 GiB</text>
-    <rect x="156" y="142" width="377" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="541" y="154">1,532 GiB</text>
+    <text class="lab" x="148" y="126" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="137" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="115" width="209" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="373" y="127">850 GiB</text>
+    <text class="lab" x="148" y="153" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="164" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="142" width="176" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="340" y="154">714 GiB</text>
   </svg>
   <figcaption>
     From vLLM's own <code>Model loading took N GiB</code> line per rank, times
@@ -90,8 +90,13 @@ measured — **what vLLM reported loading**, summed across the eight GPUs:
   </figcaption>
 </figure>
 
-A useful sanity check falls out of this. GLM-5.2 appears twice — bf16 at
-1,412 GiB and FP8 at 714 GiB, almost exactly half. Same model, half the bits,
+Every chart in this post is sorted by its own values, longest bar first, so the
+row order changes from figure to figure. That is deliberate: what the models do
+is not what they weigh.
+
+A useful sanity check falls out of this one. GLM-5.2 appears twice — bf16
+second from the top at 1,412 GiB, FP8 at the bottom at 714 GiB, almost exactly
+half. Same model, half the bits,
 half the footprint. That the arithmetic works is a small confirmation that the
 measurement means what I think it does.
 
@@ -126,7 +131,7 @@ the stated shape, swept across concurrency and taking each model's best run.
 ## The raw ranking
 
 <figure class="qz">
-  <svg viewBox="0 0 640 201" role="img" aria-label="Peak batch throughput. GLM-5.2 FP8 7,204, DeepSeek-V4-Pro 9,183, Qwen3.8-2.4T 6,168, GLM-5.2 bf16 4,360, Kimi-K3 4,422.">
+  <svg viewBox="0 0 640 201" role="img" aria-label="Peak batch throughput. DeepSeek-V4-Pro 9,183, GLM-5.2 FP8 7,204, Qwen3.8-2.4T 6,168, Kimi-K3 4,422, GLM-5.2 bf16 4,360.">
     <line x1="259" y1="22" x2="259" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="259" y="18" text-anchor="middle">2,500</text>
     <line x1="361" y1="22" x2="361" y2="161" stroke="var(--grid)"/>
@@ -134,26 +139,26 @@ the stated shape, swept across concurrency and taking each model's best run.
     <line x1="464" y1="22" x2="464" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="464" y="18" text-anchor="middle">7,500</text>
     <text class="ax" x="156" y="195" text-anchor="start">Peak batch throughput — BATCH-D, best concurrency per model</text>
-    <text class="lab" x="148" y="45" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="56" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="34" width="296" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="460" y="46">7,204</text>
-    <text class="lab" x="148" y="72" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="83" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="61" width="377" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="541" y="73">9,183</text>
+    <text class="lab" x="148" y="45" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="56" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="34" width="377" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="541" y="46">9,183</text>
+    <text class="lab" x="148" y="72" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="83" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="61" width="296" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="460" y="73">7,204</text>
     <text class="lab" x="148" y="99" text-anchor="end">Qwen3.8-2.4T</text>
     <text class="sub" x="148" y="110" text-anchor="end">NVFP4 · 1,340 GiB</text>
     <rect x="156" y="88" width="253" height="15" rx="3" fill="var(--ok)"/>
     <text class="val" x="417" y="100">6,168</text>
-    <text class="lab" x="148" y="126" text-anchor="end">GLM-5.2 bf16</text>
-    <text class="sub" x="148" y="137" text-anchor="end">bf16 · 1,412 GiB</text>
-    <rect x="156" y="115" width="179" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="343" y="127">4,360</text>
-    <text class="lab" x="148" y="153" text-anchor="end">Kimi-K3</text>
-    <text class="sub" x="148" y="164" text-anchor="end">MXFP4 · 1,532 GiB</text>
-    <rect x="156" y="142" width="182" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="346" y="154">4,422</text>
+    <text class="lab" x="148" y="126" text-anchor="end">Kimi-K3</text>
+    <text class="sub" x="148" y="137" text-anchor="end">MXFP4 · 1,532 GiB</text>
+    <rect x="156" y="115" width="182" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="346" y="127">4,422</text>
+    <text class="lab" x="148" y="153" text-anchor="end">GLM-5.2 bf16</text>
+    <text class="sub" x="148" y="164" text-anchor="end">bf16 · 1,412 GiB</text>
+    <rect x="156" y="142" width="179" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="343" y="154">4,360</text>
   </svg>
   <figcaption>
     Peak sustained output on BATCH-D, each model at whichever concurrency
@@ -173,20 +178,20 @@ tied.
 ## Normalising by size
 
 <figure class="qz">
-  <svg viewBox="0 0 640 201" role="img" aria-label="Throughput per GiB of weights. GLM-5.2 FP8 10.1, DeepSeek-V4-Pro 10.8, Qwen3.8-2.4T 4.6, GLM-5.2 bf16 3.1, Kimi-K3 2.9.">
+  <svg viewBox="0 0 640 201" role="img" aria-label="Throughput per GiB of weights. DeepSeek-V4-Pro 10.8, GLM-5.2 FP8 10.1, Qwen3.8-2.4T 4.6, GLM-5.2 bf16 3.1, Kimi-K3 2.9.">
     <line x1="331" y1="22" x2="331" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="331" y="18" text-anchor="middle">5.0</text>
     <line x1="505" y1="22" x2="505" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="505" y="18" text-anchor="middle">10.0</text>
     <text class="ax" x="156" y="195" text-anchor="start">Throughput per GiB of weights — peak BATCH-D tok/s ÷ node weight footprint</text>
-    <text class="lab" x="148" y="45" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="56" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="34" width="352" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="516" y="46">10.1</text>
-    <text class="lab" x="148" y="72" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="83" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="61" width="377" height="15" rx="3" fill="var(--ok)"/>
-    <text class="val" x="541" y="73">10.8</text>
+    <text class="lab" x="148" y="45" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="56" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="34" width="377" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="541" y="46">10.8</text>
+    <text class="lab" x="148" y="72" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="83" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="61" width="352" height="15" rx="3" fill="var(--ok)"/>
+    <text class="val" x="516" y="73">10.1</text>
     <text class="lab" x="148" y="99" text-anchor="end">Qwen3.8-2.4T</text>
     <text class="sub" x="148" y="110" text-anchor="end">NVFP4 · 1,340 GiB</text>
     <rect x="156" y="88" width="161" height="15" rx="3" fill="var(--ok)"/>
@@ -253,32 +258,32 @@ The tier table above uses two workloads. Here are all seven, in order of how
 much context each one has to chew through before it can emit anything.
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="API-S peak output throughput, short structured API request. GLM-5.2 FP8 2,684, DeepSeek-V4-Pro 3,759, Qwen3.8-2.4T 2,443, GLM-5.2 bf16 2,617, Kimi-K3 1,651.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="API-S peak output throughput, short structured API request. DeepSeek-V4-Pro 3,759, GLM-5.2 FP8 2,684, GLM-5.2 bf16 2,617, Qwen3.8-2.4T 2,443, Kimi-K3 1,651.">
     <line x1="346" y1="14" x2="346" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="346" y="10" text-anchor="middle">2,000</text>
     <line x1="535" y1="14" x2="535" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="535" y="10" text-anchor="middle">4,000</text>
     <text class="ax" x="156" y="169" text-anchor="start">API-S · 2,048 → 256 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="254" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="418" y="35">2,684</text>
-    <text class="sub" x="467" y="35">c256</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">3,759</text>
-    <text class="sub" x="569" y="59">c512</text>
-    <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
-    <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
-    <rect x="156" y="72" width="232" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="396" y="83">2,443</text>
-    <text class="sub" x="445" y="83">c512</text>
-    <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
-    <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
-    <rect x="156" y="96" width="248" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="412" y="107">2,617</text>
-    <text class="sub" x="461" y="107">c256</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">3,759</text>
+    <text class="sub" x="569" y="35">c512</text>
+    <text class="lab" x="148" y="58" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="48" width="254" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="418" y="59">2,684</text>
+    <text class="sub" x="467" y="59">c256</text>
+    <text class="lab" x="148" y="82" text-anchor="end">GLM-5.2 bf16</text>
+    <text class="sub" x="148" y="92" text-anchor="end">bf16 · 1,412 GiB</text>
+    <rect x="156" y="72" width="248" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="412" y="83">2,617</text>
+    <text class="sub" x="461" y="83">c256</text>
+    <text class="lab" x="148" y="106" text-anchor="end">Qwen3.8-2.4T</text>
+    <text class="sub" x="148" y="116" text-anchor="end">NVFP4 · 1,340 GiB</text>
+    <rect x="156" y="96" width="232" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="396" y="107">2,443</text>
+    <text class="sub" x="445" y="107">c512</text>
     <text class="lab" x="148" y="130" text-anchor="end">Kimi-K3</text>
     <text class="sub" x="148" y="140" text-anchor="end">MXFP4 · 1,532 GiB</text>
     <rect x="156" y="120" width="157" height="13" rx="3" fill="var(--ok)"/>
@@ -295,7 +300,7 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="CHAT-S peak output throughput, ordinary interactive chat. GLM-5.2 FP8 3,989, DeepSeek-V4-Pro 5,493, Qwen3.8-2.4T 4,115, GLM-5.2 bf16 3,658, Kimi-K3 2,880.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="CHAT-S peak output throughput, ordinary interactive chat. DeepSeek-V4-Pro 5,493, Qwen3.8-2.4T 4,115, GLM-5.2 FP8 3,989, GLM-5.2 bf16 3,658, Kimi-K3 2,880.">
     <line x1="286" y1="14" x2="286" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="286" y="10" text-anchor="middle">2,000</text>
     <line x1="416" y1="14" x2="416" y2="137" stroke="var(--grid)"/>
@@ -303,21 +308,21 @@ much context each one has to chew through before it can emit anything.
     <line x1="545" y1="14" x2="545" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="545" y="10" text-anchor="middle">6,000</text>
     <text class="ax" x="156" y="169" text-anchor="start">CHAT-S · 2,048 → 512 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="259" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="423" y="35">3,989</text>
-    <text class="sub" x="472" y="35">c256</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">5,493</text>
-    <text class="sub" x="569" y="59">c512</text>
-    <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
-    <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
-    <rect x="156" y="72" width="267" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="431" y="83">4,115</text>
-    <text class="sub" x="480" y="83">c512</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">5,493</text>
+    <text class="sub" x="569" y="35">c512</text>
+    <text class="lab" x="148" y="58" text-anchor="end">Qwen3.8-2.4T</text>
+    <text class="sub" x="148" y="68" text-anchor="end">NVFP4 · 1,340 GiB</text>
+    <rect x="156" y="48" width="267" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="431" y="59">4,115</text>
+    <text class="sub" x="480" y="59">c512</text>
+    <text class="lab" x="148" y="82" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="92" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="72" width="259" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="423" y="83">3,989</text>
+    <text class="sub" x="472" y="83">c256</text>
     <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
     <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
     <rect x="156" y="96" width="237" height="13" rx="3" fill="var(--ok)"/>
@@ -337,27 +342,27 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="CODE-I peak output throughput, interactive coding assistant. GLM-5.2 FP8 1,814, DeepSeek-V4-Pro 2,335, Qwen3.8-2.4T 2,004, GLM-5.2 bf16 1,458, Kimi-K3 1,390.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="CODE-I peak output throughput, interactive coding assistant. DeepSeek-V4-Pro 2,335, Qwen3.8-2.4T 2,004, GLM-5.2 FP8 1,814, GLM-5.2 bf16 1,458, Kimi-K3 1,390.">
     <line x1="309" y1="14" x2="309" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="309" y="10" text-anchor="middle">1,000</text>
     <line x1="461" y1="14" x2="461" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="461" y="10" text-anchor="middle">2,000</text>
     <text class="ax" x="156" y="169" text-anchor="start">CODE-I · 16,384 → 2,048 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="277" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="441" y="35">1,814</text>
-    <text class="sub" x="490" y="35">c256</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">2,335</text>
-    <text class="sub" x="569" y="59">c256</text>
-    <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
-    <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
-    <rect x="156" y="72" width="306" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="470" y="83">2,004</text>
-    <text class="sub" x="519" y="83">c256</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">2,335</text>
+    <text class="sub" x="569" y="35">c256</text>
+    <text class="lab" x="148" y="58" text-anchor="end">Qwen3.8-2.4T</text>
+    <text class="sub" x="148" y="68" text-anchor="end">NVFP4 · 1,340 GiB</text>
+    <rect x="156" y="48" width="306" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="470" y="59">2,004</text>
+    <text class="sub" x="519" y="59">c256</text>
+    <text class="lab" x="148" y="82" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="92" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="72" width="277" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="441" y="83">1,814</text>
+    <text class="sub" x="490" y="83">c256</text>
     <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
     <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
     <rect x="156" y="96" width="222" height="13" rx="3" fill="var(--ok)"/>
@@ -377,7 +382,7 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="CHAT-L peak output throughput, long technical conversation. GLM-5.2 FP8 1,071, DeepSeek-V4-Pro 1,535, Qwen3.8-2.4T 1,039, GLM-5.2 bf16 855, Kimi-K3 774.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="CHAT-L peak output throughput, long technical conversation. DeepSeek-V4-Pro 1,535, GLM-5.2 FP8 1,071, Qwen3.8-2.4T 1,039, GLM-5.2 bf16 855, Kimi-K3 774.">
     <line x1="272" y1="14" x2="272" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="272" y="10" text-anchor="middle">500</text>
     <line x1="388" y1="14" x2="388" y2="137" stroke="var(--grid)"/>
@@ -385,16 +390,16 @@ much context each one has to chew through before it can emit anything.
     <line x1="504" y1="14" x2="504" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="504" y="10" text-anchor="middle">1,500</text>
     <text class="ax" x="156" y="169" text-anchor="start">CHAT-L · 32,768 → 2,048 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="249" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="413" y="35">1,071</text>
-    <text class="sub" x="462" y="35">c64</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">1,535</text>
-    <text class="sub" x="569" y="59">c256</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">1,535</text>
+    <text class="sub" x="569" y="35">c256</text>
+    <text class="lab" x="148" y="58" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="48" width="249" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="413" y="59">1,071</text>
+    <text class="sub" x="462" y="59">c64</text>
     <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
     <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
     <rect x="156" y="72" width="241" height="13" rx="3" fill="var(--ok)"/>
@@ -420,27 +425,27 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="CODE-A peak output throughput, coding-agent call, repository in context. GLM-5.2 FP8 839, DeepSeek-V4-Pro 1,328, Qwen3.8-2.4T 997, GLM-5.2 bf16 719, Kimi-K3 691.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="CODE-A peak output throughput, coding-agent call, repository in context. DeepSeek-V4-Pro 1,328, Qwen3.8-2.4T 997, GLM-5.2 FP8 839, GLM-5.2 bf16 719, Kimi-K3 691.">
     <line x1="290" y1="14" x2="290" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="290" y="10" text-anchor="middle">500</text>
     <line x1="424" y1="14" x2="424" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="424" y="10" text-anchor="middle">1,000</text>
     <text class="ax" x="156" y="169" text-anchor="start">CODE-A · 65,536 → 4,096 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="225" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="389" y="35">839</text>
-    <text class="sub" x="422" y="35">c64</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">1,328</text>
-    <text class="sub" x="569" y="59">c256</text>
-    <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
-    <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
-    <rect x="156" y="72" width="268" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="432" y="83">997</text>
-    <text class="sub" x="465" y="83">c256</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">1,328</text>
+    <text class="sub" x="569" y="35">c256</text>
+    <text class="lab" x="148" y="58" text-anchor="end">Qwen3.8-2.4T</text>
+    <text class="sub" x="148" y="68" text-anchor="end">NVFP4 · 1,340 GiB</text>
+    <rect x="156" y="48" width="268" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="432" y="59">997</text>
+    <text class="sub" x="465" y="59">c256</text>
+    <text class="lab" x="148" y="82" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="92" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="72" width="225" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="389" y="83">839</text>
+    <text class="sub" x="422" y="83">c64</text>
     <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
     <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
     <rect x="156" y="96" width="193" height="13" rx="3" fill="var(--ok)"/>
@@ -461,32 +466,32 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="DOC-L peak output throughput, long-document analysis and RAG. GLM-5.2 FP8 258, DeepSeek-V4-Pro 384, Qwen3.8-2.4T 293, GLM-5.2 bf16 260, Kimi-K3 212.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="DOC-L peak output throughput, long-document analysis and RAG. DeepSeek-V4-Pro 384, Qwen3.8-2.4T 293, GLM-5.2 bf16 260, GLM-5.2 FP8 258, Kimi-K3 212.">
     <line x1="341" y1="14" x2="341" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="341" y="10" text-anchor="middle">200</text>
     <line x1="527" y1="14" x2="527" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="527" y="10" text-anchor="middle">400</text>
     <text class="ax" x="156" y="169" text-anchor="start">DOC-L · 131,072 → 2,048 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="239" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="403" y="35">258</text>
-    <text class="sub" x="436" y="35">c16</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">384</text>
-    <text class="sub" x="553" y="59">c256</text>
-    <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
-    <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
-    <rect x="156" y="72" width="272" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="436" y="83">293</text>
-    <text class="sub" x="469" y="83">c256</text>
-    <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
-    <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
-    <rect x="156" y="96" width="241" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="405" y="107">260</text>
-    <text class="sub" x="438" y="107">c96</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">384</text>
+    <text class="sub" x="553" y="35">c256</text>
+    <text class="lab" x="148" y="58" text-anchor="end">Qwen3.8-2.4T</text>
+    <text class="sub" x="148" y="68" text-anchor="end">NVFP4 · 1,340 GiB</text>
+    <rect x="156" y="48" width="272" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="436" y="59">293</text>
+    <text class="sub" x="469" y="59">c256</text>
+    <text class="lab" x="148" y="82" text-anchor="end">GLM-5.2 bf16</text>
+    <text class="sub" x="148" y="92" text-anchor="end">bf16 · 1,412 GiB</text>
+    <rect x="156" y="72" width="241" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="405" y="83">260</text>
+    <text class="sub" x="438" y="83">c96</text>
+    <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="116" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="96" width="239" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="403" y="107">258</text>
+    <text class="sub" x="436" y="107">c16</text>
     <text class="lab" x="148" y="130" text-anchor="end">Kimi-K3</text>
     <text class="sub" x="148" y="140" text-anchor="end">MXFP4 · 1,532 GiB</text>
     <rect x="156" y="120" width="197" height="13" rx="3" fill="var(--ok)"/>
@@ -503,37 +508,37 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 <figure class="qz">
-  <svg viewBox="0 0 640 174" role="img" aria-label="BATCH-D peak output throughput, decode-heavy batch generation. GLM-5.2 FP8 7,204, DeepSeek-V4-Pro 9,183, Qwen3.8-2.4T 6,168, GLM-5.2 bf16 4,360, Kimi-K3 4,422.">
+  <svg viewBox="0 0 640 174" role="img" aria-label="BATCH-D peak output throughput, decode-heavy batch generation. DeepSeek-V4-Pro 9,183, GLM-5.2 FP8 7,204, Qwen3.8-2.4T 6,168, Kimi-K3 4,422, GLM-5.2 bf16 4,360.">
     <line x1="350" y1="14" x2="350" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="350" y="10" text-anchor="middle">5,000</text>
     <line x1="544" y1="14" x2="544" y2="137" stroke="var(--grid)"/>
     <text class="sub" x="544" y="10" text-anchor="middle">10,000</text>
     <text class="ax" x="156" y="169" text-anchor="start">BATCH-D · 4,096 → 8,192 · peak output tok/s</text>
-    <text class="lab" x="148" y="34" text-anchor="end">GLM-5.2 FP8</text>
-    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 714 GiB</text>
-    <rect x="156" y="24" width="280" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="444" y="35">7,204</text>
-    <text class="sub" x="493" y="35">c256</text>
-    <text class="lab" x="148" y="58" text-anchor="end">DeepSeek-V4-Pro</text>
-    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 850 GiB</text>
-    <rect x="156" y="48" width="356" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="520" y="59">9,183</text>
-    <text class="sub" x="569" y="59">c512</text>
+    <text class="lab" x="148" y="34" text-anchor="end">DeepSeek-V4-Pro</text>
+    <text class="sub" x="148" y="44" text-anchor="end">FP8 · 850 GiB</text>
+    <rect x="156" y="24" width="356" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="520" y="35">9,183</text>
+    <text class="sub" x="569" y="35">c512</text>
+    <text class="lab" x="148" y="58" text-anchor="end">GLM-5.2 FP8</text>
+    <text class="sub" x="148" y="68" text-anchor="end">FP8 · 714 GiB</text>
+    <rect x="156" y="48" width="280" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="444" y="59">7,204</text>
+    <text class="sub" x="493" y="59">c256</text>
     <text class="lab" x="148" y="82" text-anchor="end">Qwen3.8-2.4T</text>
     <text class="sub" x="148" y="92" text-anchor="end">NVFP4 · 1,340 GiB</text>
     <rect x="156" y="72" width="239" height="13" rx="3" fill="var(--ok)"/>
     <text class="val" x="403" y="83">6,168</text>
     <text class="sub" x="452" y="83">c512</text>
-    <text class="lab" x="148" y="106" text-anchor="end">GLM-5.2 bf16</text>
-    <text class="sub" x="148" y="116" text-anchor="end">bf16 · 1,412 GiB</text>
-    <rect x="156" y="96" width="169" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="333" y="107">4,360</text>
-    <text class="sub" x="382" y="107">c256</text>
-    <text class="lab" x="148" y="130" text-anchor="end">Kimi-K3</text>
-    <text class="sub" x="148" y="140" text-anchor="end">MXFP4 · 1,532 GiB</text>
-    <rect x="156" y="120" width="172" height="13" rx="3" fill="var(--ok)"/>
-    <text class="val" x="336" y="131">4,422</text>
-    <text class="sub" x="385" y="131">c1024</text>
+    <text class="lab" x="148" y="106" text-anchor="end">Kimi-K3</text>
+    <text class="sub" x="148" y="116" text-anchor="end">MXFP4 · 1,532 GiB</text>
+    <rect x="156" y="96" width="172" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="336" y="107">4,422</text>
+    <text class="sub" x="385" y="107">c1024</text>
+    <text class="lab" x="148" y="130" text-anchor="end">GLM-5.2 bf16</text>
+    <text class="sub" x="148" y="140" text-anchor="end">bf16 · 1,412 GiB</text>
+    <rect x="156" y="120" width="169" height="13" rx="3" fill="var(--ok)"/>
+    <text class="val" x="333" y="131">4,360</text>
+    <text class="sub" x="382" y="131">c256</text>
   </svg>
   <figcaption>
     <strong>BATCH-D — 4,096 in → 8,192 out.</strong> Decode-heavy batch
@@ -545,6 +550,10 @@ much context each one has to chew through before it can emit anything.
 </figure>
 
 ### What stays the same, and what moves
+
+Because each figure above is sorted on its own numbers, the reordering is
+visible rather than asserted: scan the top row down the seven charts and it
+never changes, then scan the second row and it changes four times.
 
 One thing holds across all seven shapes: **DeepSeek-V4-Pro is first
 everywhere.** No workload in this set dislodges it, which is worth stating
