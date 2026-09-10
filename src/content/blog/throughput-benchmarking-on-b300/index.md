@@ -116,7 +116,7 @@ Let's start with the raw ranking using the BATCH-D workload (the one where we ca
     <text class="sub" x="361" y="18" text-anchor="middle">5,000</text>
     <line x1="464" y1="22" x2="464" y2="161" stroke="var(--grid)"/>
     <text class="sub" x="464" y="18" text-anchor="middle">7,500</text>
-    <text class="ax" x="156" y="195" text-anchor="start">Peak batch throughput — BATCH-D, best concurrency per model</text>
+    <text class="ax" x="156" y="195" text-anchor="start">Peak batch throughput</text>
     <text class="lab" x="148" y="45" text-anchor="end">DeepSeek-V4-Pro</text>
     <text class="sub" x="148" y="56" text-anchor="end">FP8 · 850 GiB</text>
     <rect x="156" y="34" width="377" height="15" rx="3" fill="var(--ok)"/>
