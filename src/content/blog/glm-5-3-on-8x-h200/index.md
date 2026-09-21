@@ -233,15 +233,22 @@ batch 1.
 The order inverts almost completely. GLM-5.3-Flash on SGLang's high-throughput
 cell tops the chart, and the low-latency recipes fall to the bottom.
 
-> **Correction in progress.** The 256-stream BATCH-D figures on this chart are
-> not reproducible and are being re-measured. A repeat put GLM-5.3-Flash at
-> 8,739 tok/s against the 14,210 first recorded — a 38% swing. The cause is my
-> harness, not the engines: one 8,192-token request takes about 241 s at these
-> rates and the measured window was 240 s, so whether a second wave of 256
-> requests lands inside the window is a phase accident. The recurring ~8,7xx
-> values across several configurations are exactly `256 × 8192 / 240` — one wave
-> per window. Everything at 64 concurrent streams and below repeated within 6%,
-> so the crossover finding and the single-stream numbers are unaffected.
+> **Correction.** The 256-stream BATCH-D figures were measured wrong. A repeat
+> put GLM-5.3-Flash at 8,739 tok/s against the 14,210 first recorded, and a
+> 1,200 s re-measurement settled it at **9,709** — so my original headline was
+> 32% too high.
+>
+> The cause was my harness, not the engines: one 8,192-token request takes about
+> 241 s at these rates and the measured window was 240 s, so whether a second
+> wave of 256 requests landed inside the window was a phase accident. The
+> recurring ~8,7xx values across unrelated configurations are exactly
+> `256 × 8192 / 240` — one wave per window, which measures the harness.
+>
+> Two cells have been re-measured over 1,200 s, two seeds each agreeing within
+> 0.2%: GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
+> high-throughput at **7,705**. The rest of that column is still on the short
+> window and cannot be compared against them. Everything at 64 concurrent
+> streams and below repeated within 6% and is unaffected.
 
 ## Where the recipes cross — and why you cannot reuse the answer
 
@@ -316,10 +323,16 @@ the workload:
 
 | GLM-5.3-Flash | CHAT-S peak | BATCH-D peak |
 |---|--:|--:|
-| SGLang high-throughput | 4,368 | **14,210** |
-| vLLM throughput | **4,905** | 11,805 |
+| SGLang high-throughput | 4,368 | 9,709 † |
+| vLLM throughput | **4,905** | 11,805 ‡ |
 
-vLLM is ahead on chat-shaped traffic, SGLang on batch. On Qwen FP8, vLLM's
+† re-measured over 1,200 s. ‡ short window only — not comparable to the dagger
+row, and its re-measurement hit a transient distributed-init failure before the
+node was needed elsewhere.
+
+vLLM is ahead on chat-shaped traffic. **On batch I can no longer say which
+leads**: the only long-window SGLang figure is 9,709 and the vLLM figure beside
+it is still a short-window measurement. On Qwen FP8, vLLM's
 balanced cell leads CHAT-S 5,257 to 4,370. These are ordinary engineering
 differences of tens of percent.
 
@@ -364,12 +377,13 @@ this node they perform the same:
 
 | Qwen3.8-Flash-Next | BATCH-D c64 | BATCH-D peak |
 |---|--:|--:|
-| bf16, SGLang high-throughput | 4,327 | 8,176 |
-| FP8, SGLang high-throughput | 4,276 | **8,412** |
+| bf16, SGLang high-throughput | 4,327 | 8,176 ‡ |
+| FP8, SGLang high-throughput | 4,276 | 7,705 † |
 
-Half the weight memory, no measurable throughput change in either direction.
-That is a good result if you need the VRAM back and a non-result if you were
-hoping for speed.
+At 64 streams — where the measurement is sound — they are within 1.2%. Half the
+weight memory for no measurable throughput change in either direction. The peak
+column mixes a long-window figure with a short-window one and should not be read
+as a difference.
 
 ## Three configurations do not fit at all
 
