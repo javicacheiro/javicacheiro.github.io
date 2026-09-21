@@ -231,8 +231,17 @@ batch 1.
 </figure>
 
 The order inverts almost completely. GLM-5.3-Flash on SGLang's high-throughput
-cell reaches **14,210 tok/s** — 3.4× its own low-latency sibling, and nine times
-what that same model manages single-stream.
+cell tops the chart, and the low-latency recipes fall to the bottom.
+
+> **Correction in progress.** The 256-stream BATCH-D figures on this chart are
+> not reproducible and are being re-measured. A repeat put GLM-5.3-Flash at
+> 8,739 tok/s against the 14,210 first recorded — a 38% swing. The cause is my
+> harness, not the engines: one 8,192-token request takes about 241 s at these
+> rates and the measured window was 240 s, so whether a second wave of 256
+> requests lands inside the window is a phase accident. The recurring ~8,7xx
+> values across several configurations are exactly `256 × 8192 / 240` — one wave
+> per window. Everything at 64 concurrent streams and below repeated within 6%,
+> so the crossover finding and the single-stream numbers are unaffected.
 
 ## Where the recipes cross — and why you cannot reuse the answer
 
@@ -412,5 +421,7 @@ bounded by duration rather than prompt count. Every configuration was checked
 for silent Triton `w8a8_block_fp8_matmul` fallbacks — all twenty came back
 clean.
 
-234 runs in total. One repetition per cell, so treat differences under about
-10% as unresolved.
+234 runs in total. A second repetition on four cells gives a partial noise floor: everything at 64
+concurrent streams and below repeated within 6%, but the 256-stream BATCH-D
+figures did not reproduce at all (see the correction above). Treat differences
+under about 10% as unresolved, and the 256-stream batch column as provisional.
