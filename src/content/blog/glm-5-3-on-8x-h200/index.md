@@ -244,11 +244,11 @@ cell tops the chart, and the low-latency recipes fall to the bottom.
 > recurring ~8,7xx values across unrelated configurations are exactly
 > `256 × 8192 / 240` — one wave per window, which measures the harness.
 >
-> Two cells have been re-measured over 1,200 s, two seeds each agreeing within
-> 0.2%: GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
-> high-throughput at **7,705**. The rest of that column is still on the short
-> window and cannot be compared against them. Everything at 64 concurrent
-> streams and below repeated within 6% and is unaffected.
+> Two cells were re-measured over 1,200 s, two seeds each agreeing within 0.2%:
+> GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
+> high-throughput at **7,705**. Every other figure in that column is still on
+> the short window and cannot be compared against them. Everything at 64
+> concurrent streams and below repeated within 6% and is unaffected.
 
 ## Where the recipes cross — and why you cannot reuse the answer
 
@@ -330,9 +330,10 @@ the workload:
 row, and its re-measurement hit a transient distributed-init failure before the
 node was needed elsewhere.
 
-vLLM is ahead on chat-shaped traffic. **On batch I can no longer say which
-leads**: the only long-window SGLang figure is 9,709 and the vLLM figure beside
-it is still a short-window measurement. On Qwen FP8, vLLM's
+vLLM is ahead on chat-shaped traffic. **On batch I cannot say which leads.** The
+only sound SGLang figure is 9,709; the vLLM figure beside it is a short-window
+measurement and comparing the two would repeat the error described above. The
+cell needed to settle it would not start reliably — see below. On Qwen FP8, vLLM's
 balanced cell leads CHAT-S 5,257 to 4,370. These are ordinary engineering
 differences of tens of percent.
 
@@ -385,6 +386,19 @@ weight memory for no measurable throughput change in either direction. The peak
 column mixes a long-window figure with a short-window one and should not be read
 as a difference.
 
+## One configuration would not start reliably
+
+vLLM's throughput strategy on GLM-5.3-Flash **served once in four attempts.**
+The three failures share a signature: a shared-memory broadcast stall during
+FlashInfer MoE autotuning, after which one worker dies and the survivors report
+`Connection closed by peer ... typically caused by a remote worker crashing`.
+
+It is not a capacity problem. The failing runs get as far as allocating
+2,933,564 KV tokens, and the one run that started completed all thirteen
+benchmarks. A configuration that comes up a quarter of the time is worth knowing
+about before you put anything behind it — and it is why the batch comparison
+above is unresolved.
+
 ## Three configurations do not fit at all
 
 - **GLM-5.3's high-throughput cell rejects every 128k-token prompt.**
@@ -412,6 +426,29 @@ you already have.
 metric reported **53 tok/s** while the engine was sustaining about **5,100**.
 Every figure here is instead all output tokens produced over the measured
 window, including by requests still streaming at the cutoff.
+
+**A fixed measurement window measures phase, not throughput.** This is the one
+that produced a wrong headline, and it is the one worth carrying away. A
+duration-bounded run only measures a rate if the window is long relative to one
+request's *service time*. At 256 streams an 8,192-token request took about
+241 s and my window was 240 s, so whether an extra wave of 256 requests landed
+inside it was a coin flip worth 38% of the answer.
+
+The tell was there and I walked past it: 8,739, 8,737, 8,432 and 8,229 tok/s
+turning up across four unrelated configurations. All of them are
+`256 × 8192 / 240` — one wave per window. Four different engines and models do
+not agree to three significant figures by coincidence; that number was a
+property of my harness.
+
+The harness now scales the window with concurrency, and after every run divides
+the window by the measured request latency and re-runs the cell if it held fewer
+than three service times. The threshold came from the repeats themselves:
+
+| waves in window | spread between repeats |
+|--:|--:|
+| 0.9 | **38%** |
+| 3.1 | 0.13% |
+| 4.0 | 0.00% |
 
 **A per-run timeout that deleted the hardest cells.** Runs are bounded by
 duration, but the harness still has to wait for requests in flight when the
