@@ -233,22 +233,53 @@ batch 1.
 The order inverts almost completely. GLM-5.3-Flash on SGLang's high-throughput
 cell tops the chart, and the low-latency recipes fall to the bottom.
 
-> **Correction.** The 256-stream BATCH-D figures were measured wrong. A repeat
-> put GLM-5.3-Flash at 8,739 tok/s against the 14,210 first recorded, and a
-> 1,200 s re-measurement settled it at **9,709** — so my original headline was
-> 32% too high.
->
-> The cause was my harness, not the engines: one 8,192-token request takes about
-> 241 s at these rates and the measured window was 240 s, so whether a second
-> wave of 256 requests landed inside the window was a phase accident. The
-> recurring ~8,7xx values across unrelated configurations are exactly
-> `256 × 8192 / 240` — one wave per window, which measures the harness.
->
-> Two cells were re-measured over 1,200 s, two seeds each agreeing within 0.2%:
-> GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
-> high-throughput at **7,705**. Every other figure in that column is still on
-> the short window and cannot be compared against them. Everything at 64
-> concurrent streams and below repeated within 6% and is unaffected.
+
+## Every benchmark, every configuration
+
+Aggregate output tok/s at 64 concurrent requests — the operating point where a
+second repetition agreed within 6%, so these are the soundest numbers here.
+
+| configuration | API-S | CHAT-S | CODE-I | CHAT-L | CODE-A | DOC-L | BATCH-D |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| **GLM-5.3-Flash** | | | | | | | |
+| SGLang LL | 759 | 1,675 | 1,608 | 964 | 957 | 264 | 4,093 |
+| SGLang HT | 1,529 | 2,840 | 1,873 | 1,248 | 868 | 222 | 4,369 |
+| vLLM latency | 1,193 | 2,038 | 2,003 | 1,305 | 1,225 | 386 | 5,025 |
+| vLLM balanced | 1,257 | 2,238 | 2,097 | 1,308 | 1,216 | 388 | 5,433 |
+| vLLM throughput | 1,478 | 2,091 | 1,845 | 1,317 | 1,699 | 587 | 4,490 |
+| **GLM-5.3** | | | | | | | |
+| SGLang LL | 891 | 1,139 | 616 | 354 | 289 | 94 | 1,516 |
+| SGLang HT | 1,090 | 1,521 | 930 | 468 | 392 | *rej* | 4,009 |
+| vLLM latency | 760 | 1,238 | 569 | 320 | 300 | 95 | 2,014 |
+| vLLM balanced | 801 | 1,239 | 599 | 328 | 287 | 99 | 2,051 |
+| vLLM throughput | — | — | — | — | — | — | — |
+| **DeepSeek-V4.1-Flash** | | | | | | | |
+| SGLang LL | 437 | 655 | 624 | 624 | *n/c* | *n/c* | 2,184 |
+| SGLang HT | 437 | 655 | 624 | *n/c* | *n/c* | *n/c* | 2,184 |
+| vLLM latency | 1,620 | 2,927 | 1,731 | 1,006 | 965 | *n/c* | 5,343 |
+| vLLM throughput | 1,331 | 2,095 | 1,333 | 746 | 992 | *rej* | 5,700 |
+| **Qwen3.8-Flash-Next bf16** | | | | | | | |
+| SGLang LL | 1,032 | 1,685 | 1,936 | 1,189 | 1,155 | 353 | 4,446 |
+| SGLang HT | 1,857 | 2,403 | 1,873 | 1,100 | 1,100 | 359 | 4,327 |
+| **Qwen3.8-Flash-Next FP8** | | | | | | | |
+| SGLang LL | 1,170 | 1,681 | 1,917 | 1,198 | 1,390 | 342 | 4,453 |
+| SGLang HT | 2,075 | 2,840 | 2,496 | 1,249 | 1,039 | 289 | 4,276 |
+| vLLM balanced | 2,435 | 3,398 | 3,102 | 1,838 | 2,082 | 378 | 6,475 |
+| vLLM throughput | — | — | — | — | — | — | — |
+
+*rej* — the server refused every request. *n/c* — no request finished inside the
+window, so there is no rate to report: on DeepSeek's 128k-token shapes the whole
+window went into prefill, ingesting ~35,000 input tok/s while emitting almost
+nothing. That is a measurement limit, not a slow engine.
+
+**Qwen3.8-Flash-Next FP8 under vLLM wins six of the seven benchmarks**, and by
+wide margins on the short shapes — 2,435 tok/s on API-S against 1,529 for the
+best GLM-5.3-Flash cell. The exception is DOC-L, the 128k-token shape, where
+GLM-5.3-Flash's vLLM throughput cell leads at 587.
+
+No configuration is good at everything. The best API-S cell is mid-table on
+DOC-L; the best DOC-L cell is mid-table on API-S. If your traffic is one shape,
+benchmark that shape.
 
 ## Where the recipes cross — and why you cannot reuse the answer
 
@@ -386,19 +417,6 @@ weight memory for no measurable throughput change in either direction. The peak
 column mixes a long-window figure with a short-window one and should not be read
 as a difference.
 
-## One configuration would not start reliably
-
-vLLM's throughput strategy on GLM-5.3-Flash **served once in four attempts.**
-The three failures share a signature: a shared-memory broadcast stall during
-FlashInfer MoE autotuning, after which one worker dies and the survivors report
-`Connection closed by peer ... typically caused by a remote worker crashing`.
-
-It is not a capacity problem. The failing runs get as far as allocating
-2,933,564 KV tokens, and the one run that started completed all thirteen
-benchmarks. A configuration that comes up a quarter of the time is worth knowing
-about before you put anything behind it — and it is why the batch comparison
-above is unresolved.
-
 ## Three configurations do not fit at all
 
 - **GLM-5.3's high-throughput cell rejects every 128k-token prompt.**
@@ -418,7 +436,26 @@ vLLM recipes say Blackwell-only. Half the intended matrix was never runnable
 here — worth checking before you plan a quantization comparison around a node
 you already have.
 
-## Two ways this measurement nearly went wrong
+## Notes on what went wrong
+
+Four problems shaped this data. Three were mine.
+
+> **The 256-stream column.** The 256-stream BATCH-D figures were measured wrong. A repeat
+> put GLM-5.3-Flash at 8,739 tok/s against the 14,210 first recorded, and a
+> 1,200 s re-measurement settled it at **9,709** — so my original headline was
+> 32% too high.
+>
+> The cause was my harness, not the engines: one 8,192-token request takes about
+> 241 s at these rates and the measured window was 240 s, so whether a second
+> wave of 256 requests landed inside the window was a phase accident. The
+> recurring ~8,7xx values across unrelated configurations are exactly
+> `256 × 8192 / 240` — one wave per window, which measures the harness.
+>
+> Two cells were re-measured over 1,200 s, two seeds each agreeing within 0.2%:
+> GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
+> high-throughput at **7,705**. Every other figure in that column is still on
+> the short window and cannot be compared against them. Everything at 64
+> concurrent streams and below repeated within 6% and is unaffected.
 
 **Throughput averaged over completed requests.** GuideLLM's
 `output_tokens_per_second` averages across requests that finished. On BATCH-D at
@@ -457,6 +494,18 @@ hour; my ten-minute grace period killed those runs outright, leaving holes in
 exactly the decode-heavy cells the campaign existed to measure — and leaving them
 *silently*, because a killed run writes no output at all. Two of my interim
 conclusions came from reading those holes as data.
+
+**One configuration would not start reliably.** vLLM's throughput strategy on GLM-5.3-Flash **served once in four attempts.**
+The three failures share a signature: a shared-memory broadcast stall during
+FlashInfer MoE autotuning, after which one worker dies and the survivors report
+`Connection closed by peer ... typically caused by a remote worker crashing`.
+
+It is not a capacity problem. The failing runs get as far as allocating
+2,933,564 KV tokens, and the one run that started completed all thirteen
+benchmarks. A configuration that comes up a quarter of the time is worth knowing
+about before you put anything behind it — and it is why the batch comparison
+above is unresolved.
+
 
 ## Method
 
