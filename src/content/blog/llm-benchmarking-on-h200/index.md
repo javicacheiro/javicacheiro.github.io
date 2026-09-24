@@ -48,89 +48,425 @@ bounded by duration rather than prompt count. Same workloads as the ones used fo
 
 The 256-stream runs are provisional due to some issues in the benchmarking procedure.
 
+### The exact commands
+
+Every configuration below, verbatim. Some boilerplate is common to all of them:
+the HuggingFace cache is bind-mounted from `/fsx` because the root disk on this
+node is too small to hold the weights, and `--ulimit memlock=-1` is there
+because several of these models pin host memory for their state tables. Flags
+otherwise come straight from each model's published `hw=h200` recipe cell.
+
+### zai-org/GLM-5.3
+
+**SGLang latency** — `sgl-glm53-lowlat`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:latest \
+  sglang serve --model-path zai-org/GLM-5.3 \
+  --tp 8 --speculative-algorithm EAGLE --speculative-num-steps 5 \
+  --speculative-eagle-topk 1 --speculative-num-draft-tokens 6 \
+  --mem-fraction-static 0.8 \
+  --host 0.0.0.0 --port 30000
+```
+
+**SGLang throughput** — `sgl-glm53-hithru`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:latest \
+  sglang serve --model-path zai-org/GLM-5.3 \
+  --tp 8 --dp 8 --enable-dp-attention --moe-a2a-backend deepep \
+  --speculative-algorithm EAGLE --speculative-num-steps 1 \
+  --speculative-eagle-topk 1 --speculative-num-draft-tokens 2 \
+  --mem-fraction-static 0.85 --chunked-prefill-size 32768 \
+  --max-running-requests 256 \
+  --host 0.0.0.0 --port 30000
+```
+
+
+### zai-org/GLM-5.3-Flash
+
+**SGLang latency** — `sgl-flash-lowlat`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:glm-5.3-flash \
+  sglang serve --model-path zai-org/GLM-5.3-Flash \
+  --tp-size 8 --ep-size 8 --mem-fraction-static 0.75 \
+  --dsa-prefill-backend tilelang --dsa-decode-backend tilelang \
+  --kv-cache-dtype bfloat16 --moe-runner-backend deep_gemm \
+  --speculative-algorithm EAGLE --speculative-num-steps 5 \
+  --speculative-eagle-topk 1 --speculative-num-draft-tokens 6 \
+  --reasoning-parser glm45 --tool-call-parser glm47 \
+  --host 0.0.0.0 --port 30000
+```
+
+**SGLang throughput** — `sgl-flash-hithru`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:glm-5.3-flash \
+  sglang serve --model-path zai-org/GLM-5.3-Flash \
+  --tp-size 8 --ep-size 8 --dsa-prefill-backend tilelang \
+  --dsa-decode-backend tilelang --kv-cache-dtype bfloat16 \
+  --moe-runner-backend deep_gemm --reasoning-parser glm45 \
+  --tool-call-parser glm47 \
+  --host 0.0.0.0 --port 30000
+```
+
+
+### zai-org/GLM-5.3
+
+**vLLM latency** — `vllm-glm53`
+
+```bash
+VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+vllm serve zai-org/GLM-5.3 \
+  --max-model-len 262144 --kv-cache-dtype fp8 --tensor-parallel-size 8 \
+  --speculative-config.method mtp \
+  --speculative-config.num_speculative_tokens 5 --tool-call-parser glm47 \
+  --reasoning-parser glm47 --enable-auto-tool-choice \
+  --served-model-name glm-5.3 \
+  --host 0.0.0.0 --port 8000
+```
+
+
+### zai-org/GLM-5.3-Flash
+
+**vLLM latency** — `vllm-flash`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:nightly \
+  --model zai-org/GLM-5.3-Flash \
+  --tensor-parallel-size 8 \
+  --speculative-config {"method":"mtp","num_speculative_tokens":5} \
+  --tool-call-parser glm47 --reasoning-parser glm47 \
+  --enable-auto-tool-choice --served-model-name glm-5.3-flash \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM balanced** — `vllm-flash-tep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:nightly \
+  --model zai-org/GLM-5.3-Flash \
+  --tensor-parallel-size 8 --enable-expert-parallel \
+  --speculative-config {"method":"mtp","num_speculative_tokens":5} \
+  --tool-call-parser glm47 --reasoning-parser glm47 \
+  --enable-auto-tool-choice --served-model-name glm-5.3-flash \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM throughput** — `vllm-flash-dep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:nightly \
+  --model zai-org/GLM-5.3-Flash \
+  --max-num-seqs 512 --data-parallel-size 8 --enable-expert-parallel \
+  --speculative-config {"method":"mtp","num_speculative_tokens":5} \
+  --tool-call-parser glm47 --reasoning-parser glm47 \
+  --enable-auto-tool-choice --served-model-name glm-5.3-flash \
+  --host 0.0.0.0 --port 8000
+```
+
+
+### zai-org/GLM-5.3
+
+**vLLM balanced** — `vllm-glm53-tep`
+
+```bash
+VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+vllm serve zai-org/GLM-5.3 \
+  --tensor-parallel-size 8 --enable-expert-parallel --max-model-len 262144 \
+  --kv-cache-dtype fp8 --speculative-config.method mtp \
+  --speculative-config.num_speculative_tokens 5 --tool-call-parser glm47 \
+  --reasoning-parser glm47 --enable-auto-tool-choice \
+  --served-model-name glm-5.3 \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM throughput** — `vllm-glm53-dep`
+
+```bash
+VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+vllm serve zai-org/GLM-5.3 \
+  --data-parallel-size 8 --enable-expert-parallel --max-model-len 262144 \
+  --kv-cache-dtype fp8 --speculative-config.method mtp \
+  --speculative-config.num_speculative_tokens 5 --tool-call-parser glm47 \
+  --reasoning-parser glm47 --enable-auto-tool-choice \
+  --served-model-name glm-5.3 \
+  --host 0.0.0.0 --port 8000
+```
+
+
+### deepseek-ai/DeepSeek-V4.1-Flash
+
+**SGLang latency** — `sgl-dsv41-lowlat`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:dev-dsv41 \
+  sglang serve --model-path deepseek-ai/DeepSeek-V4.1-Flash \
+  --trust-remote-code --tp 8 --ep-size 8 --mem-fraction-static 0.8 \
+  --attention-backend dsv4 --moe-runner-backend flashinfer_mxfp4 \
+  --cuda-graph-max-bs-decode 64 --reasoning-parser auto \
+  --tool-call-parser auto --enable-decoder-swa-bounded-replay \
+  --host 0.0.0.0 --port 30000
+```
+
+**SGLang throughput** — `sgl-dsv41-hithru`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:dev-dsv41 \
+  sglang serve --model-path deepseek-ai/DeepSeek-V4.1-Flash \
+  --trust-remote-code --tp 8 --ep-size 8 --mem-fraction-static 0.8 \
+  --attention-backend dsv4 --moe-runner-backend flashinfer_mxfp4 \
+  --cuda-graph-max-bs-decode 64 --reasoning-parser auto \
+  --tool-call-parser auto --max-running-requests 256 \
+  --host 0.0.0.0 --port 30000
+```
+
+
+### Qwen/Qwen3.8-Flash-Next
+
+**SGLang latency** — `sgl-qwen38-lowlat`
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:qwen38flashnext \
+  sglang serve --model-path Qwen/Qwen3.8-Flash-Next \
+  --tp 4 --mem-fraction-static 0.85 --chunked-prefill-size 8192 \
+  --linear-attn-prefill-backend flashinfer \
+  --linear-attn-decode-backend flashinfer --mamba-ssm-dtype bfloat16 \
+  --reasoning-parser auto --linear-attn-verify-backend triton \
+  --speculative-algorithm NEXTN --speculative-num-steps 3 \
+  --speculative-eagle-topk 1 --speculative-num-draft-tokens 4 \
+  --max-running-requests 96 \
+  --host 0.0.0.0 --port 30000
+```
+
+**SGLang throughput** — `sgl-qwen38-hithru`
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:qwen38flashnext \
+  sglang serve --model-path Qwen/Qwen3.8-Flash-Next \
+  --tp 4 --mem-fraction-static 0.85 --chunked-prefill-size 8192 \
+  --linear-attn-prefill-backend flashinfer \
+  --linear-attn-decode-backend flashinfer --mamba-ssm-dtype bfloat16 \
+  --reasoning-parser auto --ep 4 \
+  --host 0.0.0.0 --port 30000
+```
+
+
+### Qwen/Qwen3.8-Flash-Next-FP8
+
+**SGLang latency** — `sgl-qwen38fp8-lowlat`
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:qwen38flashnext \
+  sglang serve --model-path Qwen/Qwen3.8-Flash-Next-FP8 \
+  --tp 4 --ep 4 --mem-fraction-static 0.85 --chunked-prefill-size 8192 \
+  --linear-attn-prefill-backend flashinfer \
+  --linear-attn-decode-backend flashinfer --mamba-ssm-dtype bfloat16 \
+  --reasoning-parser auto --linear-attn-verify-backend triton \
+  --speculative-algorithm NEXTN --speculative-num-steps 3 \
+  --speculative-eagle-topk 1 --speculative-num-draft-tokens 4 \
+  --host 0.0.0.0 --port 30000
+```
+
+**SGLang throughput** — `sgl-qwen38fp8-hithru`
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:qwen38flashnext \
+  sglang serve --model-path Qwen/Qwen3.8-Flash-Next-FP8 \
+  --tp 4 --ep 4 --mem-fraction-static 0.85 --chunked-prefill-size 8192 \
+  --linear-attn-prefill-backend flashinfer \
+  --linear-attn-decode-backend flashinfer --mamba-ssm-dtype bfloat16 \
+  --reasoning-parser auto \
+  --host 0.0.0.0 --port 30000
+```
+
+
+### deepseek-ai/DeepSeek-V4.1-Flash
+
+**vLLM latency** — `vllm-dsv41-tp`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:nightly \
+  --model deepseek-ai/DeepSeek-V4.1-Flash \
+  --tensor-parallel-size 8 --language-model-only \
+  --tokenizer-mode deepseek_v41 --tool-call-parser deepseek_v41 \
+  --enable-auto-tool-choice --reasoning-parser deepseek_v41 \
+  --gpu-memory-utilization 0.9 \
+  --speculative-config {"method":"dspark","num_speculative_tokens":5,"draft_sample_method":"probabilistic","rejection_sample_method":"block","enable_adaptive_verification":false} \
+  --max-model-len 262144 --max-num-seqs 128 --max-num-batched-tokens 16384 \
+  --served-model-name dsv41 \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM throughput** — `vllm-dsv41-dep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:nightly \
+  --model deepseek-ai/DeepSeek-V4.1-Flash \
+  --data-parallel-size 8 --enable-expert-parallel --language-model-only \
+  --tokenizer-mode deepseek_v41 --tool-call-parser deepseek_v41 \
+  --enable-auto-tool-choice --reasoning-parser deepseek_v41 \
+  --gpu-memory-utilization 0.9 \
+  --speculative-config {"method":"dspark","num_speculative_tokens":5,"draft_sample_method":"probabilistic","rejection_sample_method":"block","enable_adaptive_verification":false} \
+  --max-model-len 262144 --max-num-seqs 128 --max-num-batched-tokens 16384 \
+  --served-model-name dsv41 \
+  --host 0.0.0.0 --port 8000
+```
+
+
+### Qwen/Qwen3.8-Flash-Next-FP8
+
+**vLLM balanced** — `vllm-qwen38fp8-tep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:qwen38-flash-next \
+  --model Qwen/Qwen3.8-Flash-Next-FP8 \
+  --tensor-parallel-size 8 --enable-expert-parallel --moe-backend triton \
+  --gpu-memory-utilization 0.85 --max-num-seqs 256 --enable-prefix-caching \
+  --no-enable-flashinfer-autotune --enable-auto-tool-choice \
+  --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
+  --served-model-name qwen38fp8 \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM throughput** — `vllm-qwen38fp8-dep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  -e VLLM_ENGINE_READY_TIMEOUT_S=3600 \
+  vllm/vllm-openai:qwen38-flash-next \
+  --model Qwen/Qwen3.8-Flash-Next-FP8 \
+  --data-parallel-size 8 --enable-expert-parallel --moe-backend triton \
+  --gpu-memory-utilization 0.85 --max-num-seqs 256 --enable-prefix-caching \
+  --no-enable-flashinfer-autotune --enable-auto-tool-choice \
+  --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
+  --served-model-name qwen38fp8 \
+  --host 0.0.0.0 --port 8000
+```
+
 ## Single request performance
 
 <figure class="qz">
-  <svg viewBox="0 0 640 528" role="img" aria-label="Single-stream output throughput for 18 serving configurations. vLLM latency 294, SGLang low-latency 195, SGLang low-latency 184, SGLang low-latency 174, vLLM throughput 167, SGLang low-latency 164, vLLM latency 150, vLLM latency 147, vLLM balanced 143, vLLM balanced 140, vLLM balanced 137, SGLang high-throughput 137, SGLang high-throughput 137, SGLang high-throughput 113, vLLM throughput 99, SGLang high-throughput 96, SGLang low-latency 68, SGLang high-throughput 68.">
-    <line x1="306" y1="20" x2="306" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="306" y="16" text-anchor="middle">100</text>
-    <line x1="415" y1="20" x2="415" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="415" y="16" text-anchor="middle">200</text>
-    <line x1="525" y1="20" x2="525" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="525" y="16" text-anchor="middle">300</text>
-    <text class="ax" x="196" y="523" text-anchor="start">One request at a time · CHAT-S · output tok/s</text>
-    <text class="lab" x="188" y="40" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="50" text-anchor="end">DeepSeek-V4.1 · 3.32 ms / token</text>
-    <rect x="196" y="30" width="321" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="525" y="41">294</text>
-    <text class="lab" x="188" y="66" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="76" text-anchor="end">GLM-5.3 · 4.71 ms / token</text>
-    <rect x="196" y="56" width="213" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="417" y="67">195</text>
-    <text class="lab" x="188" y="92" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="102" text-anchor="end">Qwen3.8 FP8 · 5.03 ms / token</text>
-    <rect x="196" y="82" width="202" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="406" y="93">184</text>
-    <text class="lab" x="188" y="118" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="128" text-anchor="end">GLM-5.3-Flash · 5.31 ms / token</text>
-    <rect x="196" y="108" width="191" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="395" y="119">174</text>
-    <text class="lab" x="188" y="144" text-anchor="end">vLLM throughput</text>
-    <text class="sub" x="188" y="154" text-anchor="end">DeepSeek-V4.1 · 5.68 ms / token</text>
-    <rect x="196" y="134" width="183" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="387" y="145">167</text>
-    <text class="lab" x="188" y="170" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="180" text-anchor="end">Qwen3.8 bf16 · 5.76 ms / token</text>
-    <rect x="196" y="160" width="179" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="383" y="171">164</text>
-    <text class="lab" x="188" y="196" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="206" text-anchor="end">GLM-5.3-Flash · 6.10 ms / token</text>
-    <rect x="196" y="186" width="164" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="368" y="197">150</text>
-    <text class="lab" x="188" y="222" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="232" text-anchor="end">GLM-5.3 · 6.41 ms / token</text>
-    <rect x="196" y="212" width="161" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="365" y="223">147</text>
-    <text class="lab" x="188" y="248" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="258" text-anchor="end">GLM-5.3-Flash · 6.44 ms / token</text>
-    <rect x="196" y="238" width="157" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="361" y="249">143</text>
-    <text class="lab" x="188" y="274" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="284" text-anchor="end">Qwen3.8 FP8 · 7.02 ms / token</text>
-    <rect x="196" y="264" width="153" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="357" y="275">140</text>
-    <text class="lab" x="188" y="300" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="310" text-anchor="end">GLM-5.3 · 7.02 ms / token</text>
-    <rect x="196" y="290" width="150" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="354" y="301">137</text>
-    <text class="lab" x="188" y="326" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="336" text-anchor="end">Qwen3.8 bf16 · 7.16 ms / token</text>
-    <rect x="196" y="316" width="150" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="354" y="327">137</text>
-    <text class="lab" x="188" y="352" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="362" text-anchor="end">Qwen3.8 FP8 · 7.07 ms / token</text>
-    <rect x="196" y="342" width="150" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="354" y="353">137</text>
-    <text class="lab" x="188" y="378" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="388" text-anchor="end">GLM-5.3-Flash · 8.64 ms / token</text>
-    <rect x="196" y="368" width="123" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="327" y="379">113</text>
-    <text class="lab" x="188" y="404" text-anchor="end">vLLM throughput</text>
-    <text class="sub" x="188" y="414" text-anchor="end">GLM-5.3-Flash · 9.95 ms / token</text>
-    <rect x="196" y="394" width="108" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="312" y="405">99</text>
-    <text class="lab" x="188" y="430" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="440" text-anchor="end">GLM-5.3 · 10.21 ms / token</text>
-    <rect x="196" y="420" width="105" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="309" y="431">96</text>
-    <text class="lab" x="188" y="456" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="466" text-anchor="end">DeepSeek-V4.1 · 14.97 ms / token</text>
-    <rect x="196" y="446" width="75" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="279" y="457">68</text>
-    <text class="lab" x="188" y="482" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="492" text-anchor="end">DeepSeek-V4.1 · 15.00 ms / token</text>
-    <rect x="196" y="472" width="75" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="279" y="483">68</text>
+  <svg viewBox="0 0 640 528" role="img" aria-label="Single-stream output throughput for 18 serving configurations. DeepSeek-V4.1-Flash 294, GLM-5.3 195, Qwen3.8-Flash-Next FP8 184, GLM-5.3-Flash 174, DeepSeek-V4.1-Flash 167, Qwen3.8-Flash-Next bf16 164, GLM-5.3-Flash 150, GLM-5.3 147, GLM-5.3-Flash 143, Qwen3.8-Flash-Next FP8 140, GLM-5.3 137, Qwen3.8-Flash-Next bf16 137, Qwen3.8-Flash-Next FP8 137, GLM-5.3-Flash 113, GLM-5.3-Flash 99, GLM-5.3 96, DeepSeek-V4.1-Flash 68, DeepSeek-V4.1-Flash 68.">
+    <line x1="331" y1="20" x2="331" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="331" y="16" text-anchor="middle">100</text>
+    <line x1="429" y1="20" x2="429" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="429" y="16" text-anchor="middle">200</text>
+    <line x1="528" y1="20" x2="528" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="528" y="16" text-anchor="middle">300</text>
+    <text class="ax" x="232" y="523" text-anchor="start">One request at a time · CHAT-S · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM latency · 3.32 ms / token</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="529" y="41">294</text>
+    <text class="lab" x="224" y="66" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="76" text-anchor="end">SGLang latency · 4.71 ms / token</text>
+    <rect x="232" y="56" width="192" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="432" y="67">195</text>
+    <text class="lab" x="224" y="92" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="102" text-anchor="end">SGLang latency · 5.03 ms / token</text>
+    <rect x="232" y="82" width="182" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="422" y="93">184</text>
+    <text class="lab" x="224" y="118" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang latency · 5.31 ms / token</text>
+    <rect x="232" y="108" width="172" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="412" y="119">174</text>
+    <text class="lab" x="224" y="144" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM throughput · 5.68 ms / token</text>
+    <rect x="232" y="134" width="165" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="405" y="145">167</text>
+    <text class="lab" x="224" y="170" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="180" text-anchor="end">SGLang latency · 5.76 ms / token</text>
+    <rect x="232" y="160" width="161" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="401" y="171">164</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="206" text-anchor="end">vLLM latency · 6.10 ms / token</text>
+    <rect x="232" y="186" width="148" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="388" y="197">150</text>
+    <text class="lab" x="224" y="222" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="232" text-anchor="end">vLLM latency · 6.41 ms / token</text>
+    <rect x="232" y="212" width="145" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="385" y="223">147</text>
+    <text class="lab" x="224" y="248" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="258" text-anchor="end">vLLM balanced · 6.44 ms / token</text>
+    <rect x="232" y="238" width="141" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="381" y="249">143</text>
+    <text class="lab" x="224" y="274" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="284" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
+    <rect x="232" y="264" width="138" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="378" y="275">140</text>
+    <text class="lab" x="224" y="300" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="310" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
+    <rect x="232" y="290" width="135" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="375" y="301">137</text>
+    <text class="lab" x="224" y="326" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="336" text-anchor="end">SGLang throughput · 7.16 ms / token</text>
+    <rect x="232" y="316" width="135" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="375" y="327">137</text>
+    <text class="lab" x="224" y="352" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="362" text-anchor="end">SGLang throughput · 7.07 ms / token</text>
+    <rect x="232" y="342" width="135" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="375" y="353">137</text>
+    <text class="lab" x="224" y="378" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="388" text-anchor="end">SGLang throughput · 8.64 ms / token</text>
+    <rect x="232" y="368" width="111" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="351" y="379">113</text>
+    <text class="lab" x="224" y="404" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="414" text-anchor="end">vLLM throughput · 9.95 ms / token</text>
+    <rect x="232" y="394" width="98" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="338" y="405">99</text>
+    <text class="lab" x="224" y="430" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="440" text-anchor="end">SGLang throughput · 10.21 ms / token</text>
+    <rect x="232" y="420" width="94" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="334" y="431">96</text>
+    <text class="lab" x="224" y="456" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="466" text-anchor="end">SGLang latency · 14.97 ms / token</text>
+    <rect x="232" y="446" width="67" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="307" y="457">68</text>
+    <text class="lab" x="224" y="482" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="492" text-anchor="end">SGLang throughput · 15.00 ms / token</text>
+    <rect x="232" y="472" width="67" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="307" y="483">68</text>
   </svg>
   <figcaption>
     A single request, CHAT-S shape (2,048 in → 512 out). The sublabel is the
@@ -155,86 +491,86 @@ batch 1.
 ## Concurrent request performance
 
 <figure class="qz">
-  <svg viewBox="0 0 640 528" role="img" aria-label="Batch output throughput at 64 concurrent requests for 18 serving configurations. vLLM balanced 6,475, vLLM throughput 5,700, vLLM balanced 5,433, vLLM latency 5,343, vLLM latency 5,025, vLLM throughput 4,490, SGLang low-latency 4,453, SGLang low-latency 4,446, SGLang high-throughput 4,369, SGLang high-throughput 4,327, SGLang high-throughput 4,276, SGLang low-latency 4,093, SGLang high-throughput 4,009, SGLang high-throughput 2,184, SGLang low-latency 2,184, vLLM balanced 2,051, vLLM latency 2,014, SGLang low-latency 1,516.">
-    <line x1="295" y1="20" x2="295" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="295" y="16" text-anchor="middle">2,000</text>
-    <line x1="395" y1="20" x2="395" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="395" y="16" text-anchor="middle">4,000</text>
-    <line x1="494" y1="20" x2="494" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="494" y="16" text-anchor="middle">6,000</text>
-    <text class="ax" x="196" y="523" text-anchor="start">Under load · BATCH-D · 64 concurrent · output tok/s</text>
-    <text class="lab" x="188" y="40" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="50" text-anchor="end">Qwen3.8 FP8 · 64 concurrent</text>
-    <rect x="196" y="30" width="321" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="525" y="41">6,475</text>
-    <text class="lab" x="188" y="66" text-anchor="end">vLLM throughput</text>
-    <text class="sub" x="188" y="76" text-anchor="end">DeepSeek-V4.1 · 64 concurrent</text>
-    <rect x="196" y="56" width="283" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="487" y="67">5,700</text>
-    <text class="lab" x="188" y="92" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="102" text-anchor="end">GLM-5.3-Flash · 64 concurrent</text>
-    <rect x="196" y="82" width="270" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="474" y="93">5,433</text>
-    <text class="lab" x="188" y="118" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="128" text-anchor="end">DeepSeek-V4.1 · 64 concurrent</text>
-    <rect x="196" y="108" width="265" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="469" y="119">5,343</text>
-    <text class="lab" x="188" y="144" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="154" text-anchor="end">GLM-5.3-Flash · 64 concurrent</text>
-    <rect x="196" y="134" width="249" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="453" y="145">5,025</text>
-    <text class="lab" x="188" y="170" text-anchor="end">vLLM throughput</text>
-    <text class="sub" x="188" y="180" text-anchor="end">GLM-5.3-Flash · 64 concurrent</text>
-    <rect x="196" y="160" width="223" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="427" y="171">4,490</text>
-    <text class="lab" x="188" y="196" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="206" text-anchor="end">Qwen3.8 FP8 · 64 concurrent</text>
-    <rect x="196" y="186" width="221" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="425" y="197">4,453</text>
-    <text class="lab" x="188" y="222" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="232" text-anchor="end">Qwen3.8 bf16 · 64 concurrent</text>
-    <rect x="196" y="212" width="221" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="425" y="223">4,446</text>
-    <text class="lab" x="188" y="248" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="258" text-anchor="end">GLM-5.3-Flash · 64 concurrent</text>
-    <rect x="196" y="238" width="217" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="421" y="249">4,369</text>
-    <text class="lab" x="188" y="274" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="284" text-anchor="end">Qwen3.8 bf16 · 64 concurrent</text>
-    <rect x="196" y="264" width="215" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="419" y="275">4,327</text>
-    <text class="lab" x="188" y="300" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="310" text-anchor="end">Qwen3.8 FP8 · 64 concurrent</text>
-    <rect x="196" y="290" width="212" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="416" y="301">4,276</text>
-    <text class="lab" x="188" y="326" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="336" text-anchor="end">GLM-5.3-Flash · 64 concurrent</text>
-    <rect x="196" y="316" width="203" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="407" y="327">4,093</text>
-    <text class="lab" x="188" y="352" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="362" text-anchor="end">GLM-5.3 · 64 concurrent</text>
-    <rect x="196" y="342" width="199" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="403" y="353">4,009</text>
-    <text class="lab" x="188" y="378" text-anchor="end">SGLang high-throughput</text>
-    <text class="sub" x="188" y="388" text-anchor="end">DeepSeek-V4.1 · 64 concurrent</text>
-    <rect x="196" y="368" width="108" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="312" y="379">2,184</text>
-    <text class="lab" x="188" y="404" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="414" text-anchor="end">DeepSeek-V4.1 · 64 concurrent</text>
-    <rect x="196" y="394" width="108" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="312" y="405">2,184</text>
-    <text class="lab" x="188" y="430" text-anchor="end">vLLM balanced</text>
-    <text class="sub" x="188" y="440" text-anchor="end">GLM-5.3 · 64 concurrent</text>
-    <rect x="196" y="420" width="102" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="306" y="431">2,051</text>
-    <text class="lab" x="188" y="456" text-anchor="end">vLLM latency</text>
-    <text class="sub" x="188" y="466" text-anchor="end">GLM-5.3 · 64 concurrent</text>
-    <rect x="196" y="446" width="100" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="304" y="457">2,014</text>
-    <text class="lab" x="188" y="482" text-anchor="end">SGLang low-latency</text>
-    <text class="sub" x="188" y="492" text-anchor="end">GLM-5.3 · 64 concurrent</text>
-    <rect x="196" y="472" width="75" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="279" y="483">1,516</text>
+  <svg viewBox="0 0 640 528" role="img" aria-label="Batch output throughput at 64 concurrent requests for 18 serving configurations. Qwen3.8-Flash-Next FP8 6,475, DeepSeek-V4.1-Flash 5,700, GLM-5.3-Flash 5,433, DeepSeek-V4.1-Flash 5,343, GLM-5.3-Flash 5,025, GLM-5.3-Flash 4,490, Qwen3.8-Flash-Next FP8 4,453, Qwen3.8-Flash-Next bf16 4,446, GLM-5.3-Flash 4,369, Qwen3.8-Flash-Next bf16 4,327, Qwen3.8-Flash-Next FP8 4,276, GLM-5.3-Flash 4,093, GLM-5.3 4,009, DeepSeek-V4.1-Flash 2,184, DeepSeek-V4.1-Flash 2,184, GLM-5.3 2,051, GLM-5.3 2,014, GLM-5.3 1,516.">
+    <line x1="321" y1="20" x2="321" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="321" y="16" text-anchor="middle">2,000</text>
+    <line x1="411" y1="20" x2="411" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="411" y="16" text-anchor="middle">4,000</text>
+    <line x1="500" y1="20" x2="500" y2="491" stroke="var(--grid)"/>
+    <text class="sub" x="500" y="16" text-anchor="middle">6,000</text>
+    <text class="ax" x="232" y="523" text-anchor="start">Under load · BATCH-D · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="529" y="41">6,475</text>
+    <text class="lab" x="224" y="66" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM throughput · 64 concurrent</text>
+    <rect x="232" y="56" width="255" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="495" y="67">5,700</text>
+    <text class="lab" x="224" y="92" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="82" width="243" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="483" y="93">5,433</text>
+    <text class="lab" x="224" y="118" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="128" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="108" width="239" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="479" y="119">5,343</text>
+    <text class="lab" x="224" y="144" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="134" width="225" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="465" y="145">5,025</text>
+    <text class="lab" x="224" y="170" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM throughput · 64 concurrent</text>
+    <rect x="232" y="160" width="201" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="441" y="171">4,490</text>
+    <text class="lab" x="224" y="196" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="186" width="199" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="439" y="197">4,453</text>
+    <text class="lab" x="224" y="222" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="232" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="212" width="199" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="439" y="223">4,446</text>
+    <text class="lab" x="224" y="248" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="258" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="238" width="195" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="435" y="249">4,369</text>
+    <text class="lab" x="224" y="274" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="284" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="264" width="193" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="433" y="275">4,327</text>
+    <text class="lab" x="224" y="300" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="310" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="290" width="191" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="431" y="301">4,276</text>
+    <text class="lab" x="224" y="326" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="336" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="316" width="183" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="423" y="327">4,093</text>
+    <text class="lab" x="224" y="352" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="362" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="342" width="179" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="419" y="353">4,009</text>
+    <text class="lab" x="224" y="378" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="388" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="368" width="98" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="338" y="379">2,184</text>
+    <text class="lab" x="224" y="404" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="414" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="394" width="98" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="338" y="405">2,184</text>
+    <text class="lab" x="224" y="430" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="440" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="420" width="92" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="332" y="431">2,051</text>
+    <text class="lab" x="224" y="456" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="466" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="446" width="90" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="330" y="457">2,014</text>
+    <text class="lab" x="224" y="482" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="492" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="472" width="68" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="308" y="483">1,516</text>
   </svg>
   <figcaption>
     Sustained output on BATCH-D (4,096 in → 8,192 out) at 64 concurrent requests.
@@ -254,34 +590,31 @@ latency strategy — is now mid-table.
 Aggregate output tok/s at 64 concurrent requests — the operating point where a
 second repetition agreed within 6%, so these are the soundest numbers here.
 
-- LL: Low latency tuning
-- HT: High-throughput tuning
-
 | configuration | API-S | CHAT-S | CODE-I | CHAT-L | CODE-A | DOC-L | BATCH-D |
 |---|--:|--:|--:|--:|--:|--:|--:|
 | **GLM-5.3-Flash** | | | | | | | |
-| SGLang LL | 759 | 1,675 | 1,608 | 964 | 957 | 264 | 4,093 |
-| SGLang HT | 1,529 | 2,840 | 1,873 | 1,248 | 868 | 222 | 4,369 |
+| SGLang latency | 759 | 1,675 | 1,608 | 964 | 957 | 264 | 4,093 |
+| SGLang throughput | 1,529 | 2,840 | 1,873 | 1,248 | 868 | 222 | 4,369 |
 | vLLM latency | 1,193 | 2,038 | 2,003 | 1,305 | 1,225 | 386 | 5,025 |
 | vLLM balanced | 1,257 | 2,238 | 2,097 | 1,308 | 1,216 | 388 | 5,433 |
 | vLLM throughput | 1,478 | 2,091 | 1,845 | 1,317 | 1,699 | 587 | 4,490 |
 | **GLM-5.3** | | | | | | | |
-| SGLang LL | 891 | 1,139 | 616 | 354 | 289 | 94 | 1,516 |
-| SGLang HT | 1,090 | 1,521 | 930 | 468 | 392 | *rej* | 4,009 |
+| SGLang latency | 891 | 1,139 | 616 | 354 | 289 | 94 | 1,516 |
+| SGLang throughput | 1,090 | 1,521 | 930 | 468 | 392 | *rej* | 4,009 |
 | vLLM latency | 760 | 1,238 | 569 | 320 | 300 | 95 | 2,014 |
 | vLLM balanced | 801 | 1,239 | 599 | 328 | 287 | 99 | 2,051 |
 | vLLM throughput | — | — | — | — | — | — | — |
 | **DeepSeek-V4.1-Flash** | | | | | | | |
-| SGLang LL | 437 | 655 | 624 | 624 | *n/c* | *n/c* | 2,184 |
-| SGLang HT | 437 | 655 | 624 | *n/c* | *n/c* | *n/c* | 2,184 |
+| SGLang latency | 437 | 655 | 624 | 624 | *n/c* | *n/c* | 2,184 |
+| SGLang throughput | 437 | 655 | 624 | *n/c* | *n/c* | *n/c* | 2,184 |
 | vLLM latency | 1,620 | 2,927 | 1,731 | 1,006 | 965 | *n/c* | 5,343 |
 | vLLM throughput | 1,331 | 2,095 | 1,333 | 746 | 992 | *rej* | 5,700 |
 | **Qwen3.8-Flash-Next bf16** | | | | | | | |
-| SGLang LL | 1,032 | 1,685 | 1,936 | 1,189 | 1,155 | 353 | 4,446 |
-| SGLang HT | 1,857 | 2,403 | 1,873 | 1,100 | 1,100 | 359 | 4,327 |
+| SGLang latency | 1,032 | 1,685 | 1,936 | 1,189 | 1,155 | 353 | 4,446 |
+| SGLang throughput | 1,857 | 2,403 | 1,873 | 1,100 | 1,100 | 359 | 4,327 |
 | **Qwen3.8-Flash-Next FP8** | | | | | | | |
-| SGLang LL | 1,170 | 1,681 | 1,917 | 1,198 | 1,390 | 342 | 4,453 |
-| SGLang HT | 2,075 | 2,840 | 2,496 | 1,249 | 1,039 | 289 | 4,276 |
+| SGLang latency | 1,170 | 1,681 | 1,917 | 1,198 | 1,390 | 342 | 4,453 |
+| SGLang throughput | 2,075 | 2,840 | 2,496 | 1,249 | 1,039 | 289 | 4,276 |
 | vLLM balanced | 2,435 | 3,398 | 3,102 | 1,838 | 2,082 | 378 | 6,475 |
 | vLLM throughput | — | — | — | — | — | — | — |
 
@@ -299,13 +632,13 @@ benchmark that shape.
 ## Throughput vs concurrency
 
 <figure class="qz">
-  <svg viewBox="0 0 640 318" role="img" aria-label="Output throughput against concurrency on BATCH-D for three GLM-5.3-Flash configurations. SGLang low-latency: 205 at c1, 2,158 at c16, 4,093 at c64; SGLang high-throughput: 171 at c1, 1,638 at c16, 4,369 at c64; vLLM throughput: 137 at c1, 1,403 at c16, 4,490 at c64.">
+  <svg viewBox="0 0 640 318" role="img" aria-label="Output throughput against concurrency on BATCH-D for three GLM-5.3-Flash configurations. SGLang latency: 205 at c1, 2,158 at c16, 4,093 at c64; SGLang throughput: 171 at c1, 1,638 at c16, 4,369 at c64; vLLM throughput: 137 at c1, 1,403 at c16, 4,490 at c64.">
     <rect x="58" y="8" width="13" height="3" rx="1.5" fill="var(--ok)"/>
-    <text class="sub" x="76" y="12.5">SGLang low-latency</text>
-    <rect x="186" y="8" width="13" height="3" rx="1.5" fill="var(--bad)"/>
-    <text class="sub" x="204" y="12.5">SGLang high-throughput</text>
-    <rect x="337" y="8" width="13" height="3" rx="1.5" fill="var(--vl)"/>
-    <text class="sub" x="355" y="12.5">vLLM throughput</text>
+    <text class="sub" x="76" y="12.5">SGLang latency</text>
+    <rect x="162" y="8" width="13" height="3" rx="1.5" fill="var(--bad)"/>
+    <text class="sub" x="180" y="12.5">SGLang throughput</text>
+    <rect x="284" y="8" width="13" height="3" rx="1.5" fill="var(--vl)"/>
+    <text class="sub" x="302" y="12.5">vLLM throughput</text>
     <line x1="58" y1="87" x2="566" y2="87" stroke="var(--grid)"/>
     <text class="sub" x="49" y="91" text-anchor="end">4k</text>
     <text class="sub" x="58" y="290" text-anchor="middle">1</text>
@@ -353,8 +686,8 @@ Comparison of Qwen3.8-Flash-Next BF16 checkpoint (336 GB) and FP8 (173 GB) check
 
 | Qwen3.8-Flash-Next | API-S | CHAT-S | CODE-I | BATCH-D c64 |
 |---|--:|--:|--:|--:|
-| BF16, SGLang high-throughput | 1,857 | 2,403 | 1,873 | 4,327 |
-| FP8, SGLang high-throughput | 2,075 | 2,840 | 2,496 | 4,276 |
+| BF16, SGLang throughput | 1,857 | 2,403 | 1,873 | 4,327 |
+| FP8, SGLang throughput | 2,075 | 2,840 | 2,496 | 4,276 |
 
 On the decode-heavy shape the two are within 1.2% — half the weight memory for
 no measurable throughput change. On the shorter shapes FP8 is ahead by 12–33%,
