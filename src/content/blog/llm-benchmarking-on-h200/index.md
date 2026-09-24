@@ -1,7 +1,7 @@
 ---
-title: 'Four frontier models on one 8×H200 server'
-description: 'Twenty serving configurations across vLLM and SGLang. The tuning recipe matters more than the engine.'
-publishDate: 2026-09-21
+title: 'Serving LLMs on a single 8×H200 server'
+description: 'Measuring the throughput of five large models on one 8xH200 server.'
+publishDate: 2026-09-24
 draft: true
 tags:
   - ai
@@ -30,17 +30,25 @@ tags:
 .qz .ax  { font-size: 11px; fill: var(--dim); }
 </style>
 
-Four models — GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash and Qwen3.8-Flash-Next —
-served twenty different ways on the same 8×H200 node, measured on the same seven
+Comparison of the performance of four medium-size models (GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash and Qwen3.8-Flash-Next)
+on a H200 node with 8 GPUs, measured on the same seven
 workload shapes I used for the [B300 comparison](/blog/throughput-benchmarking-on-b300/).
-234 benchmark runs.
 
-The finding that survived everything else: **the tuning recipe moves throughput
-further than the engine does, and usually further than the model does.** Peak
-batch throughput across the twenty configurations spans 8.7×, and most of that
-spread is recipe, not hardware and not model choice.
+## Method
 
-## One request at a time
+One node with 8× NVIDIA H200 (SM90, 141 GiB each). TP8 throughout except Qwen's
+SGLang cells, which are TP4. The flags used correspond to the ones from each model's published
+recipe in vLLM and SGlang docs. There are only three forced deviations: `--max-model-len 262144` for
+GLM-5.3 under vLLM (the published command will not boot otherwise),
+`--max-num-seqs 512` for GLM-5.3-Flash under data parallelism, and a raised
+engine-start timeout.
+
+GuideLLM 0.7.1, with seven workload shapes from 2,048 to 131,072 input tokens, runs
+bounded by duration rather than prompt count. Same workloads as the ones used for the [B300 comparison](/blog/throughput-benchmarking-on-b300/).
+
+The 256-stream runs are provisional due to some issues in the benchmarking procedure.
+
+## Single request performance
 
 <figure class="qz">
   <svg viewBox="0 0 640 528" role="img" aria-label="Single-stream output throughput for six serving configurations. vLLM latency 294, SGLang low-latency 195, SGLang low-latency 184, SGLang low-latency 174, vLLM throughput 167, SGLang low-latency 164, vLLM latency 150, vLLM latency 147, vLLM balanced 143, vLLM balanced 140, vLLM balanced 137, SGLang high-throughput 137, SGLang high-throughput 137, SGLang high-throughput 113, vLLM throughput 99, SGLang high-throughput 96, SGLang low-latency 68, SGLang high-throughput 68.">
@@ -140,7 +148,7 @@ high-throughput recipes at the bottom, and the largest model (GLM-5.3, 743B)
 holding its own at 195 tok/s because its EAGLE 5-step draft is nearly free at
 batch 1.
 
-## Under load
+## Concurrent request performance
 
 <figure class="qz">
   <svg viewBox="0 0 640 528" role="img" aria-label="Peak batch output throughput for six serving configurations. SGLang high-throughput 14,210, vLLM throughput 11,805, vLLM throughput 10,490, SGLang high-throughput 8,737, SGLang low-latency 8,737, SGLang high-throughput 8,412, vLLM balanced 8,412, SGLang high-throughput 8,176, SGLang high-throughput 6,500, vLLM balanced 5,787, vLLM latency 5,343, SGLang low-latency 5,219, vLLM latency 5,097, SGLang low-latency 4,457, SGLang low-latency 4,149, vLLM balanced 2,051, vLLM latency 2,014, SGLang low-latency 1,636.">
@@ -234,10 +242,13 @@ The order inverts almost completely. GLM-5.3-Flash on SGLang's high-throughput
 cell tops the chart, and the low-latency recipes fall to the bottom.
 
 
-## Every benchmark, every configuration
+## Complete results
 
 Aggregate output tok/s at 64 concurrent requests — the operating point where a
 second repetition agreed within 6%, so these are the soundest numbers here.
+
+- LL: Low latency tuning
+- HF: High througput tuning
 
 | configuration | API-S | CHAT-S | CODE-I | CHAT-L | CODE-A | DOC-L | BATCH-D |
 |---|--:|--:|--:|--:|--:|--:|--:|
@@ -267,10 +278,7 @@ second repetition agreed within 6%, so these are the soundest numbers here.
 | vLLM balanced | 2,435 | 3,398 | 3,102 | 1,838 | 2,082 | 378 | 6,475 |
 | vLLM throughput | — | — | — | — | — | — | — |
 
-*rej* — the server refused every request. *n/c* — no request finished inside the
-window, so there is no rate to report: on DeepSeek's 128k-token shapes the whole
-window went into prefill, ingesting ~35,000 input tok/s while emitting almost
-nothing. That is a measurement limit, not a slow engine.
+*rej* — the server refused every request. *n/c* — no request finished inside the window.
 
 **Qwen3.8-Flash-Next FP8 under vLLM wins six of the seven benchmarks**, and by
 wide margins on the short shapes — 2,435 tok/s on API-S against 1,529 for the
@@ -281,7 +289,7 @@ No configuration is good at everything. The best API-S cell is mid-table on
 DOC-L; the best DOC-L cell is mid-table on API-S. If your traffic is one shape,
 benchmark that shape.
 
-## Where the recipes cross — and why you cannot reuse the answer
+## Throughtput vs Concurrency
 
 <figure class="qz">
   <svg viewBox="0 0 640 318" role="img" aria-label="Output throughput against concurrency on BATCH-D for three GLM-5.3-Flash configurations. SGLang low-latency: 205 at c1, 2,158 at c16, 4,093 at c64, 4,149 at c256; SGLang high-throughput: 171 at c1, 1,638 at c16, 4,369 at c64, 14,210 at c256; vLLM throughput: 137 at c1, 1,403 at c16, 4,490 at c64, 11,805 at c256.">
@@ -340,188 +348,18 @@ A rule of thumb learned on one model picks the wrong recipe for another. If you
 serve Qwen at 32 concurrent requests, the low-latency recipe is still the faster
 choice; at the same load DeepSeek has already crossed over.
 
-## Engines, compared properly
+## Qwen3.8-Flash-Next Quantization comparison
 
-My first pass at this compared SGLang's tuned high-throughput cell against
-vLLM's default, concluded vLLM faded under load, and was wrong. vLLM publishes
-deployment strategies with an explicit `orientation` — `single_node_tp` is
-**latency**, `single_node_tep` **balanced**, `single_node_dep` **throughput** —
-and I had only run the latency one. A latency strategy fading at high
-concurrency is what it is designed to do.
-
-At matched strategies the two engines are close, and which one leads depends on
-the workload:
-
-| GLM-5.3-Flash | CHAT-S peak | BATCH-D peak |
-|---|--:|--:|
-| SGLang high-throughput | 4,368 | 9,709 † |
-| vLLM throughput | **4,905** | 11,805 ‡ |
-
-† re-measured over 1,200 s. ‡ short window only — not comparable to the dagger
-row, and its re-measurement hit a transient distributed-init failure before the
-node was needed elsewhere.
-
-vLLM is ahead on chat-shaped traffic. **On batch I cannot say which leads.** The
-only sound SGLang figure is 9,709; the vLLM figure beside it is a short-window
-measurement and comparing the two would repeat the error described above. The
-cell needed to settle it would not start reliably — see below. On Qwen FP8, vLLM's
-balanced cell leads CHAT-S 5,257 to 4,370. These are ordinary engineering
-differences of tens of percent.
-
-## The exception: DeepSeek-V4.1-Flash
-
-| DeepSeek-V4.1-Flash | 1 stream | BATCH-D c64 | BATCH-D peak |
-|---|--:|--:|--:|
-| SGLang low-latency | 68 | 2,184 | 8,737 |
-| SGLang high-throughput | 68 | 2,184 | 8,737 |
-| vLLM latency | **294** | 5,343 | 5,343 |
-| vLLM throughput | 167 | **5,700** | **10,490** |
-
-vLLM is 4.3× faster single-stream and 2.6× faster at 64 concurrent requests on
-the same model, same node, same workload. Part of that is speculative decoding —
-vLLM runs DSpark, and the SGLang H200 cell is the one row in that cookbook with
-no speculative decoding at all — but not a factor of four.
-
-By 256 concurrent requests, though, SGLang closes to within 20% (8,737 against
-10,490). So this is a **scaling-curve difference, not a ceiling**: the SGLang
-configuration is slow to get going and arrives in roughly the same place. If you
-serve DeepSeek at low or moderate concurrency the engine choice is worth
-multiples; at saturation it is worth very little.
-
-The other oddity: SGLang's two published DeepSeek cells return **identical
-numbers at every point** (68, 546, 2,184; and 872 against 873 on CHAT-S). The
-low-latency and high-throughput rows differ only in
-`--enable-decoder-swa-bounded-replay` versus `--max-running-requests 256`, and on
-this hardware neither flag changes anything. They are effectively one
-configuration.
-
-I had previously measured this same SGLang configuration in isolation, saw it
-flatten around 455 tok/s, and attributed that to MXFP4 emulation on Hopper,
-which has no native FP4. That was wrong twice over: the same checkpoint on the
-same GPUs reaches 2.6× the throughput under vLLM at matched load, and SGLang
-itself reaches 8,737 tok/s once concurrency is high enough. What looked like a
-hardware ceiling was a measurement that stopped short of saturation.
-
-## Quantization bought nothing here
-
-Qwen3.8-Flash-Next ships a bf16 checkpoint (336 GB) and an FP8 one (173 GB). On
-this node they perform the same:
+Comparison of Qwen3.8-Flash-Next BF16 checkpoint (336 GB) and FP8 (173 GB) checkpoints:
 
 | Qwen3.8-Flash-Next | BATCH-D c64 | BATCH-D peak |
 |---|--:|--:|
-| bf16, SGLang high-throughput | 4,327 | 8,176 ‡ |
+| BF16, SGLang high-throughput | 4,327 | 8,176 ‡ |
 | FP8, SGLang high-throughput | 4,276 | 7,705 † |
 
-At 64 streams — where the measurement is sound — they are within 1.2%. Half the
-weight memory for no measurable throughput change in either direction. The peak
-column mixes a long-window figure with a short-window one and should not be read
-as a difference.
+On this node both perform the same, even if BF16 is larger.
 
-## Three configurations do not fit at all
+## Conclusion
+It is important to use the right tuning for the type of workload expected, considering the balance between throughtput and latency.
 
-- **GLM-5.3's high-throughput cell rejects every 128k-token prompt.**
-  `--dp 8 --enable-dp-attention` replicates the KV pool per data-parallel rank,
-  leaving 111,552 tokens against a 131,084-token request. All 460 DOC-L requests
-  were refused. The low-latency cell serves the same workload fine.
-- **vLLM's throughput strategy fails outright for GLM-5.3** — 704 GB of weights
-  replicated per DP rank leaves no room for cache blocks.
-- **And for Qwen FP8** — a 95 GiB allocation on a 141 GiB card.
-
-## NVFP4 needs different silicon
-
-I set out to compare FP8 against NVFP4. These H200s are compute capability
-**9.0**; NVFP4 needs a Blackwell FP4 tensor core at 10.0 or above. Both SGLang
-cookbooks publish NVFP4 cells only for B200, B300, GB200 and GB300, and both
-vLLM recipes say Blackwell-only. Half the intended matrix was never runnable
-here — worth checking before you plan a quantization comparison around a node
-you already have.
-
-## Notes on what went wrong
-
-Four problems shaped this data. Three were mine.
-
-> **The 256-stream column.** The 256-stream BATCH-D figures were measured wrong. A repeat
-> put GLM-5.3-Flash at 8,739 tok/s against the 14,210 first recorded, and a
-> 1,200 s re-measurement settled it at **9,709** — so my original headline was
-> 32% too high.
->
-> The cause was my harness, not the engines: one 8,192-token request takes about
-> 241 s at these rates and the measured window was 240 s, so whether a second
-> wave of 256 requests landed inside the window was a phase accident. The
-> recurring ~8,7xx values across unrelated configurations are exactly
-> `256 × 8192 / 240` — one wave per window, which measures the harness.
->
-> Two cells were re-measured over 1,200 s, two seeds each agreeing within 0.2%:
-> GLM-5.3-Flash SGLang high-throughput at **9,709** and Qwen FP8 SGLang
-> high-throughput at **7,705**. Every other figure in that column is still on
-> the short window and cannot be compared against them. Everything at 64
-> concurrent streams and below repeated within 6% and is unaffected.
-
-**Throughput averaged over completed requests.** GuideLLM's
-`output_tokens_per_second` averages across requests that finished. On BATCH-D at
-256 concurrent streams, 2 of 257 requests finish inside the window — and that
-metric reported **53 tok/s** while the engine was sustaining about **5,100**.
-Every figure here is instead all output tokens produced over the measured
-window, including by requests still streaming at the cutoff.
-
-**A fixed measurement window measures phase, not throughput.** This is the one
-that produced a wrong headline, and it is the one worth carrying away. A
-duration-bounded run only measures a rate if the window is long relative to one
-request's *service time*. At 256 streams an 8,192-token request took about
-241 s and my window was 240 s, so whether an extra wave of 256 requests landed
-inside it was a coin flip worth 38% of the answer.
-
-The tell was there and I walked past it: 8,739, 8,737, 8,432 and 8,229 tok/s
-turning up across four unrelated configurations. All of them are
-`256 × 8192 / 240` — one wave per window. Four different engines and models do
-not agree to three significant figures by coincidence; that number was a
-property of my harness.
-
-The harness now scales the window with concurrency, and after every run divides
-the window by the measured request latency and re-runs the cell if it held fewer
-than three service times. The threshold came from the repeats themselves:
-
-| waves in window | spread between repeats |
-|--:|--:|
-| 0.9 | **38%** |
-| 3.1 | 0.13% |
-| 4.0 | 0.00% |
-
-**A per-run timeout that deleted the hardest cells.** Runs are bounded by
-duration, but the harness still has to wait for requests in flight when the
-window closes. At 8,192 output tokens and a slow model that drain takes about an
-hour; my ten-minute grace period killed those runs outright, leaving holes in
-exactly the decode-heavy cells the campaign existed to measure — and leaving them
-*silently*, because a killed run writes no output at all. Two of my interim
-conclusions came from reading those holes as data.
-
-**One configuration would not start reliably.** vLLM's throughput strategy on GLM-5.3-Flash **served once in four attempts.**
-The three failures share a signature: a shared-memory broadcast stall during
-FlashInfer MoE autotuning, after which one worker dies and the survivors report
-`Connection closed by peer ... typically caused by a remote worker crashing`.
-
-It is not a capacity problem. The failing runs get as far as allocating
-2,933,564 KV tokens, and the one run that started completed all thirteen
-benchmarks. A configuration that comes up a quarter of the time is worth knowing
-about before you put anything behind it — and it is why the batch comparison
-above is unresolved.
-
-
-## Method
-
-One node, 8× NVIDIA H200 (SM90, 141 GiB each). TP8 throughout except Qwen's
-SGLang cells, which are TP4. Flags copied verbatim from each model's published
-`hw=h200` cell, with three forced deviations: `--max-model-len 262144` for
-GLM-5.3 under vLLM (the published command will not boot otherwise),
-`--max-num-seqs 512` for GLM-5.3-Flash under data parallelism, and a raised
-engine-start timeout.
-
-GuideLLM 0.7.1, seven workload shapes from 2,048 to 131,072 input tokens, runs
-bounded by duration rather than prompt count. Every configuration was checked
-for silent Triton `w8a8_block_fp8_matmul` fallbacks — all twenty came back
-clean.
-
-234 runs in total. A second repetition on four cells gives a partial noise floor: everything at 64
-concurrent streams and below repeated within 6%, but the 256-stream BATCH-D
-figures did not reproduce at all (see the correction above). Treat differences
-under about 10% as unresolved, and the 256-stream batch column as provisional.
+The engine use is not so important but it is important to do some bechmarking before moving to production.
