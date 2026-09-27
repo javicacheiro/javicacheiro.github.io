@@ -1,7 +1,8 @@
 ---
 title: 'Serving LLMs on a single 8×H200 server'
-description: 'Measuring the throughput of four large models on one 8×H200 server.'
+description: 'Benchmarking six open-weight models, including MiMo-V2.6, on one 8×H200 server.'
 publishDate: 2026-09-24
+updatedDate: 2026-09-27
 draft: true
 tags:
   - ai
@@ -30,9 +31,14 @@ tags:
 .qz .ax  { font-size: 11px; fill: var(--dim); }
 </style>
 
-Comparison of the performance of four medium-size models (GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash and Qwen3.8-Flash-Next)
-on a H200 node with 8 GPUs, measured on the same seven
+Comparison of the performance of six open-weight models — GLM-5.3, GLM-5.3-Flash,
+DeepSeek-V4.1-Flash, Qwen3.8-Flash-Next and Xiaomi's MiMo-V2.6 in both its Flash-RL
+and Pro-RL sizes — on a H200 node with 8 GPUs, measured on the same seven
 workload shapes I used for the [B300 comparison](/blog/throughput-benchmarking-on-b300/).
+
+They are not all the same weight class: MiMo-V2.6-Pro-RL is 1.02T parameters (42B
+active) and GLM-5.3 is 743B, against 309B for MiMo-V2.6-Flash-RL. What they have in
+common is that each one fits on this single node.
 
 ## Method
 
@@ -42,6 +48,17 @@ recipe in the vLLM and SGLang docs. There are only three forced deviations: `--m
 GLM-5.3 under vLLM (the published command will not boot otherwise),
 `--max-num-seqs 512` for GLM-5.3-Flash under data parallelism, and a raised
 engine-start timeout.
+
+The two MiMo-V2.6 checkpoints store their expert weights in MXFP4, which this
+hardware has no native path for: H200 is SM90, and FP4 tensor cores arrive with
+Blackwell. Their published recipe therefore pins `--moe-runner-backend marlin`
+on H200 where it uses `deep_gemm` on B300, so every MiMo number below is MXFP4
+dequantised through Marlin rather than computed in FP4. That is a property of
+running these models on Hopper, not something to tune away.
+
+Both MiMo checkpoints also ship a **DFlash** speculative drafter inside the
+repository under `dflash/`, which turns out to matter more than any other single
+flag here — see [Speculative decoding](#speculative-decoding-dflash) below.
 
 GuideLLM 0.7.1, with seven workload shapes from 2,048 to 131,072 input tokens, runs
 bounded by duration rather than prompt count. Same workloads as the ones used for the [B300 comparison](/blog/throughput-benchmarking-on-b300/).
@@ -384,6 +401,120 @@ docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
   --host 0.0.0.0 --port 8000
 ```
 
+
+### XiaomiMiMo/MiMo-V2.6-Flash-RL
+
+Stable vLLM cannot load the MXFP4-stored weights at all, so these use the image
+published for the series rather than a release tag.
+
+**vLLM latency** — `vllm-flash-tp` (the published command, verbatim)
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  vllm/vllm-openai:mimo-v26 \
+  --model XiaomiMiMo/MiMo-V2.6-Flash-RL \
+  --tensor-parallel-size 4 --trust-remote-code --gpu-memory-utilization 0.95 \
+  --max-model-len auto --reasoning-parser mimo --tool-call-parser mimo \
+  --enable-auto-tool-choice --generation-config vllm \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM latency + DFlash** — `vllm-flash-dflash-r3`
+
+`$DFLASH` is the `dflash/` directory inside the downloaded snapshot. Note the
+`--gpu-memory-utilization 0.90`: at the published 0.95 the drafter has nowhere
+to allocate and the engine dies with a CUDA OOM.
+
+```bash
+DFLASH=$(ls -d /fsx/hf-cache/hub/models--XiaomiMiMo--MiMo-V2.6-Flash-RL/snapshots/*/dflash)
+
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  vllm/vllm-openai:mimo-v26 \
+  --model XiaomiMiMo/MiMo-V2.6-Flash-RL \
+  --tensor-parallel-size 4 --trust-remote-code --gpu-memory-utilization 0.90 \
+  --max-model-len auto \
+  --speculative-config '{"method":"dflash","model":"'"$DFLASH"'","num_speculative_tokens":7}' \
+  --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \
+  --reasoning-parser mimo --tool-call-parser mimo \
+  --enable-auto-tool-choice --generation-config vllm \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM balanced** — `vllm-flash-tep`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  vllm/vllm-openai:mimo-v26 \
+  --model XiaomiMiMo/MiMo-V2.6-Flash-RL \
+  --tensor-parallel-size 8 --enable-expert-parallel \
+  --trust-remote-code --gpu-memory-utilization 0.95 --max-model-len auto \
+  --reasoning-parser mimo --tool-call-parser mimo \
+  --enable-auto-tool-choice --generation-config vllm \
+  --host 0.0.0.0 --port 8000
+```
+
+**SGLang** — `sgl-flash-cell` (the published H200 cell, verbatim)
+
+```bash
+docker run --rm --gpus '"device=0,1,2,3"' --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:dev \
+  sglang serve --model-path XiaomiMiMo/MiMo-V2.6-Flash-RL \
+  --tp 4 --moe-runner-backend marlin --trust-remote-code \
+  --reasoning-parser mimo --tool-call-parser mimo \
+  --host 0.0.0.0 --port 30000
+```
+
+### XiaomiMiMo/MiMo-V2.6-Pro-RL
+
+The 1T checkpoint. Identical flags, TP8, and the Pro repository.
+
+**vLLM latency** — `vllm-pro-tp`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  vllm/vllm-openai:mimo-v26 \
+  --model XiaomiMiMo/MiMo-V2.6-Pro-RL \
+  --tensor-parallel-size 8 --trust-remote-code --gpu-memory-utilization 0.95 \
+  --max-model-len auto --reasoning-parser mimo --tool-call-parser mimo \
+  --enable-auto-tool-choice --generation-config vllm \
+  --host 0.0.0.0 --port 8000
+```
+
+**vLLM latency + DFlash** — `vllm-pro-dflash-r3`
+
+```bash
+DFLASH=$(ls -d /fsx/hf-cache/hub/models--XiaomiMiMo--MiMo-V2.6-Pro-RL/snapshots/*/dflash)
+
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 8000:8000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  vllm/vllm-openai:mimo-v26 \
+  --model XiaomiMiMo/MiMo-V2.6-Pro-RL \
+  --tensor-parallel-size 8 --trust-remote-code --gpu-memory-utilization 0.90 \
+  --max-model-len auto \
+  --speculative-config '{"method":"dflash","model":"'"$DFLASH"'","num_speculative_tokens":7}' \
+  --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \
+  --reasoning-parser mimo --tool-call-parser mimo \
+  --enable-auto-tool-choice --generation-config vllm \
+  --host 0.0.0.0 --port 8000
+```
+
+**SGLang** — `sgl-pro-cell`
+
+```bash
+docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
+  -p 30000:30000 -v /fsx/hf-cache:/root/.cache/huggingface \
+  lmsysorg/sglang:dev \
+  sglang serve --model-path XiaomiMiMo/MiMo-V2.6-Pro-RL \
+  --tp 8 --moe-runner-backend marlin --trust-remote-code \
+  --reasoning-parser mimo --tool-call-parser mimo \
+  --host 0.0.0.0 --port 30000
+```
+
 ## Single request performance
 
 <figure class="qz">
@@ -617,17 +748,92 @@ second repetition agreed within 6%, so these are the soundest numbers here.
 | SGLang throughput | 2,075 | 2,840 | 2,496 | 1,249 | 1,039 | 289 | 4,276 |
 | vLLM balanced | 2,435 | 3,398 | 3,102 | 1,838 | 2,082 | 378 | 6,475 |
 | vLLM throughput | — | — | — | — | — | — | — |
+| **MiMo-V2.6-Flash-RL** | | | | | | | |
+| SGLang | 2,075 | 2,838 | 1,986 | 1,043 | 825 | 266 | 4,358 |
+| vLLM latency | 1,856 | 3,263 | 2,026 | 1,277 | 1,123 | 335 | 2,924 |
+| vLLM latency + DFlash | 1,909 | 3,285 | 2,410 | 1,507 | 1,313 | 370 | 4,154 |
+| vLLM balanced | 2,511 | 4,384 | 2,476 | 1,989 | 1,587 | 482 | 4,950 |
+| vLLM throughput | 1,527 | 1,960 | 1,735 | 1,238 | 1,278 | 386 | 2,020 |
+| **MiMo-V2.6-Pro-RL** | | | | | | | |
+| SGLang | 1,311 | 1,960 | 1,285 | 664 | 571 | 195 | 2,869 |
+| vLLM latency | 1,295 | 2,393 | 1,438 | 909 | 739 | 231 | 2,359 |
+| vLLM latency + DFlash | 1,335 | 2,679 | 1,648 | 987 | 892 | 255 | 3,198 |
+| vLLM balanced | 1,205 | 2,392 | 1,317 | 861 | 712 | 224 | 2,096 |
+| vLLM throughput | 763 | 1,091 | 663 | 525 | 514 | 193 | 1,103 |
 
 *rej* — the server refused every request. *n/c* — no request finished inside the window.
 
-**Qwen3.8-Flash-Next FP8 under vLLM wins six of the seven benchmarks**, and by
-wide margins on the short shapes — 2,435 tok/s on API-S against 1,529 for the
-best GLM-5.3-Flash cell. The exception is DOC-L, the 128k-token shape, where
-GLM-5.3-Flash's vLLM throughput cell leads at 587.
+Adding the MiMo models turns what used to be a clean sweep into a three-way
+split. Before they were measured, Qwen3.8-Flash-Next FP8 under vLLM won six of
+the seven benchmarks. It now wins three:
+
+| benchmark | best configuration | output tok/s |
+|---|---|--:|
+| API-S | MiMo-V2.6-Flash-RL, vLLM balanced | 2,511 |
+| CHAT-S | MiMo-V2.6-Flash-RL, vLLM balanced | 4,384 |
+| CODE-I | Qwen3.8-Flash-Next FP8, vLLM balanced | 3,102 |
+| CHAT-L | MiMo-V2.6-Flash-RL, vLLM balanced | 1,989 |
+| CODE-A | Qwen3.8-Flash-Next FP8, vLLM balanced | 2,082 |
+| DOC-L | GLM-5.3-Flash, vLLM throughput | 587 |
+| BATCH-D | Qwen3.8-Flash-Next FP8, vLLM balanced | 6,475 |
+
+MiMo-V2.6-Flash-RL takes the conversational shapes and the 32k one; Qwen keeps
+the code shapes and the decode-heavy batch shape; GLM-5.3-Flash still owns the
+128k DOC-L column it led before. Three different models, and for five of the
+seven the same strategy — vLLM with expert parallelism.
 
 No configuration is good at everything. The best API-S cell is mid-table on
 DOC-L; the best DOC-L cell is mid-table on API-S. If your traffic is one shape,
 benchmark that shape.
+
+## Speculative decoding: DFlash
+
+The largest single improvement in this whole comparison is not a parallelism
+strategy or an engine choice. It is one flag.
+
+Both MiMo-V2.6 checkpoints ship a DFlash drafter inside the model repository.
+Pointing `--speculative-config` at it, changing nothing else except dropping
+`--gpu-memory-utilization` from 0.95 to 0.90 to leave the drafter room:
+
+| output tok/s | MiMo-Flash | | MiMo-Pro | |
+|---|--:|--:|--:|--:|
+| | baseline | +DFlash | baseline | +DFlash |
+| CHAT-S, 1 stream | 232 | **345** (+48%) | 140 | **273** (+95%) |
+| CHAT-S, 64 streams | 3,263 | 3,285 (+1%) | 2,393 | 2,679 (+12%) |
+| BATCH-D, 64 streams | 2,924 | 4,154 (+42%) | 2,359 | 3,198 (+36%) |
+| DOC-L, 64 streams | 335 | 370 (+10%) | 231 | 255 (+10%) |
+
+**DFlash nearly doubles the 1T model's single-stream throughput** and improves
+every shape measured on both models. The shape of the gain is what you would
+expect from speculation: largest where the GPU is idle waiting on a sequential
+decode (one stream: +48% and +95%), smallest where 64 concurrent requests
+already keep it busy (+1% and +12%). It does not disappear under load, though —
+BATCH-D, which is decode-heavy at 8,192 output tokens, still gains 36–42%.
+
+If you serve either of these models, this is the first thing to turn on.
+
+### What would not run on H200
+
+Two configurations from the published recipes cannot run on this hardware, and
+both trace back to MXFP4 having no native SM90 path:
+
+- **`--moe-a2a-backend deepep` together with Marlin.** SGLang rejects the
+  combination outright: `Runner backend MoeRunnerBackend.MARLIN requires a fused
+  func for a2a backend deepep, but none is registered`. B300 avoids this because
+  it runs `deep_gemm`; H200 is forced onto Marlin, which has no DeepEP kernel.
+- **`--attention-backend fa4`.** Fails during startup with
+  `ValueError: Expected size in shape to be strictly positive, but got 0`, raised
+  from CUTLASS's layout builder. Isolated by changing one variable at a time:
+  removing expert parallelism and keeping fa4 still fails; removing fa4 and
+  keeping expert parallelism serves normally. This is a narrow claim — this
+  model, this image, this node — not a general statement about FA4 on Hopper.
+
+The MiMo cookbook page's prose recommends keeping both of those on H200. Its
+machine-readable H200 cell omits both. **The cell is right and the prose is
+wrong**, which is a good argument for reading the config rather than the page.
+And the reduced version of the prose configuration that H200 *can* run still
+loses to the published cell: 167 against 201 tok/s single-stream, 2,151 against
+2,838 at 64 streams.
 
 ## Throughput vs concurrency
 
@@ -711,6 +917,19 @@ land within a few percent of each other at 64 concurrent requests. It matters a
 great deal elsewhere: vLLM is 17–51% ahead on Qwen3.8-Flash-Next FP8 and **2.5–4.5×
 ahead on DeepSeek-V4.1-Flash**, on the same checkpoint and the same GPUs. Which
 way it goes is model-specific.
+
+Look for a speculative drafter before tuning anything else. Enabling DFlash on
+MiMo-V2.6 beat every parallelism change tried on that model — **+95% on
+single-stream Pro** — and it is one flag pointing at a directory that is already
+inside the checkpoint. That is a better return than any strategy choice in this
+comparison.
+
+Read the machine-readable recipe, not the page around it. Both MiMo
+configurations that refused to start on H200 were things the cookbook's prose
+recommends and its own H200 cell omits, and both traced back to the same cause:
+MXFP4 has no native path on SM90, so Marlin is forced, and Marlin rules out the
+DeepEP kernel the prose asks for. The published cell had already accounted for
+the hardware.
 
 Which is the practical point: none of this transfers. Benchmark your model, your
 engine and your workload shape before production, because every one of those
