@@ -22,7 +22,15 @@ tags:
   --dim: hsl(var(--muted-foreground));
   margin: 2rem 0;
 }
-.dark .qz { --ok: #2f9e8f; --bad: #cf6238; --vl: #8b93e8; }
+/* Model series. Colour follows the model, never its rank, so a chart that
+   drops a series never repaints the survivors. Slots 1-3 reuse the strategy
+   colours above. Both orders pass the categorical checks (lightness band,
+   chroma floor, CVD separation, normal-vision floor, contrast >= 3:1). */
+.qz { --s1: #0e9384; --s2: #c2410c; --s3: #4f5bd5; --s4: #a16207;
+      --s5: #0284c7; --s6: #be185d; --s7: #6941c6; }
+.dark .qz { --ok: #2f9e8f; --bad: #cf6238; --vl: #8b93e8;
+      --s1: #2f9e8f; --s2: #cf6238; --s3: #6b76d4; --s4: #b0841c;
+      --s5: #2f90c8; --s6: #d1598d; --s7: #9468d4; }
 .qz svg { width: 100%; height: auto; display: block; overflow: visible; }
 .qz figcaption { font-size: .875rem; line-height: 1.55; color: var(--dim); margin-top: .8rem; }
 .qz .lab { font-size: 12px; fill: var(--ink); }
@@ -518,86 +526,126 @@ docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
 ## Single request performance
 
 <figure class="qz">
-  <svg viewBox="0 0 640 528" role="img" aria-label="Single-stream output throughput for 18 serving configurations. DeepSeek-V4.1-Flash 294, GLM-5.3 195, Qwen3.8-Flash-Next FP8 184, GLM-5.3-Flash 174, DeepSeek-V4.1-Flash 167, Qwen3.8-Flash-Next bf16 164, GLM-5.3-Flash 150, GLM-5.3 147, GLM-5.3-Flash 143, Qwen3.8-Flash-Next FP8 140, GLM-5.3 137, Qwen3.8-Flash-Next bf16 137, Qwen3.8-Flash-Next FP8 137, GLM-5.3-Flash 113, GLM-5.3-Flash 99, GLM-5.3 96, DeepSeek-V4.1-Flash 68, DeepSeek-V4.1-Flash 68.">
-    <line x1="331" y1="20" x2="331" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="331" y="16" text-anchor="middle">100</text>
-    <line x1="429" y1="20" x2="429" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="429" y="16" text-anchor="middle">200</text>
-    <line x1="528" y1="20" x2="528" y2="491" stroke="var(--grid)"/>
-    <text class="sub" x="528" y="16" text-anchor="middle">300</text>
-    <text class="ax" x="232" y="523" text-anchor="start">One request at a time · CHAT-S · output tok/s</text>
-    <text class="lab" x="224" y="40" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <text class="sub" x="224" y="50" text-anchor="end">vLLM latency · 3.32 ms / token</text>
+  <svg viewBox="0 0 640 788" role="img" aria-label="Single-stream output throughput for 28 serving configurations. MiMo-V2.6-Flash-RL 345, DeepSeek-V4.1-Flash 294, MiMo-V2.6-Pro-RL 273, MiMo-V2.6-Flash-RL 232, MiMo-V2.6-Flash-RL 201, GLM-5.3 195, Qwen3.8-Flash-Next FP8 184, GLM-5.3-Flash 174, MiMo-V2.6-Flash-RL 174, DeepSeek-V4.1-Flash 167, Qwen3.8-Flash-Next bf16 164, GLM-5.3-Flash 150, GLM-5.3 147, GLM-5.3-Flash 143, Qwen3.8-Flash-Next FP8 140, MiMo-V2.6-Pro-RL 140, GLM-5.3 137, Qwen3.8-Flash-Next bf16 137, Qwen3.8-Flash-Next FP8 137, MiMo-V2.6-Pro-RL 123, GLM-5.3-Flash 113, MiMo-V2.6-Pro-RL 113, MiMo-V2.6-Flash-RL 109, GLM-5.3-Flash 99, GLM-5.3 96, DeepSeek-V4.1-Flash 68, DeepSeek-V4.1-Flash 68, MiMo-V2.6-Pro-RL 55.">
+    <line x1="316" y1="20" x2="316" y2="751" stroke="var(--grid)"/>
+    <text class="sub" x="316" y="16" text-anchor="middle">100</text>
+    <line x1="400" y1="20" x2="400" y2="751" stroke="var(--grid)"/>
+    <text class="sub" x="400" y="16" text-anchor="middle">200</text>
+    <line x1="484" y1="20" x2="484" y2="751" stroke="var(--grid)"/>
+    <text class="sub" x="484" y="16" text-anchor="middle">300</text>
+    <text class="ax" x="232" y="783" text-anchor="start">One request at a time · CHAT-S · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM latency + DFlash · 2.70 ms / token</text>
     <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="529" y="41">294</text>
-    <text class="lab" x="224" y="66" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="76" text-anchor="end">SGLang latency · 4.71 ms / token</text>
-    <rect x="232" y="56" width="192" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="432" y="67">195</text>
-    <text class="lab" x="224" y="92" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
-    <text class="sub" x="224" y="102" text-anchor="end">SGLang latency · 5.03 ms / token</text>
-    <rect x="232" y="82" width="182" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="422" y="93">184</text>
-    <text class="lab" x="224" y="118" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="128" text-anchor="end">SGLang latency · 5.31 ms / token</text>
-    <rect x="232" y="108" width="172" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="412" y="119">174</text>
-    <text class="lab" x="224" y="144" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <text class="sub" x="224" y="154" text-anchor="end">vLLM throughput · 5.68 ms / token</text>
-    <rect x="232" y="134" width="165" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="405" y="145">167</text>
-    <text class="lab" x="224" y="170" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
-    <text class="sub" x="224" y="180" text-anchor="end">SGLang latency · 5.76 ms / token</text>
-    <rect x="232" y="160" width="161" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="401" y="171">164</text>
-    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="206" text-anchor="end">vLLM latency · 6.10 ms / token</text>
-    <rect x="232" y="186" width="148" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="388" y="197">150</text>
-    <text class="lab" x="224" y="222" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="232" text-anchor="end">vLLM latency · 6.41 ms / token</text>
-    <rect x="232" y="212" width="145" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="385" y="223">147</text>
-    <text class="lab" x="224" y="248" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="258" text-anchor="end">vLLM balanced · 6.44 ms / token</text>
-    <rect x="232" y="238" width="141" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="381" y="249">143</text>
-    <text class="lab" x="224" y="274" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
-    <text class="sub" x="224" y="284" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
-    <rect x="232" y="264" width="138" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="378" y="275">140</text>
-    <text class="lab" x="224" y="300" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="310" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
-    <rect x="232" y="290" width="135" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="375" y="301">137</text>
-    <text class="lab" x="224" y="326" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
-    <text class="sub" x="224" y="336" text-anchor="end">SGLang throughput · 7.16 ms / token</text>
-    <rect x="232" y="316" width="135" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="375" y="327">137</text>
-    <text class="lab" x="224" y="352" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
-    <text class="sub" x="224" y="362" text-anchor="end">SGLang throughput · 7.07 ms / token</text>
-    <rect x="232" y="342" width="135" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="375" y="353">137</text>
+    <text class="val" x="529" y="41">345</text>
+    <text class="lab" x="224" y="66" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM latency · 3.32 ms / token</text>
+    <rect x="232" y="56" width="246" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="486" y="67">294</text>
+    <text class="lab" x="224" y="92" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM latency + DFlash · 3.38 ms / token</text>
+    <rect x="232" y="82" width="229" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="469" y="93">273</text>
+    <text class="lab" x="224" y="118" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="128" text-anchor="end">vLLM latency · 4.10 ms / token</text>
+    <rect x="232" y="108" width="195" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="435" y="119">232</text>
+    <text class="lab" x="224" y="144" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="154" text-anchor="end">SGLang · 4.83 ms / token</text>
+    <rect x="232" y="134" width="169" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="409" y="145">201</text>
+    <text class="lab" x="224" y="170" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="180" text-anchor="end">SGLang latency · 4.71 ms / token</text>
+    <rect x="232" y="160" width="163" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="403" y="171">195</text>
+    <text class="lab" x="224" y="196" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang latency · 5.03 ms / token</text>
+    <rect x="232" y="186" width="155" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="395" y="197">184</text>
+    <text class="lab" x="224" y="222" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="232" text-anchor="end">SGLang latency · 5.31 ms / token</text>
+    <rect x="232" y="212" width="146" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="386" y="223">174</text>
+    <text class="lab" x="224" y="248" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="258" text-anchor="end">vLLM balanced · 5.60 ms / token</text>
+    <rect x="232" y="238" width="146" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="386" y="249">174</text>
+    <text class="lab" x="224" y="274" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="284" text-anchor="end">vLLM throughput · 5.68 ms / token</text>
+    <rect x="232" y="264" width="140" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="380" y="275">167</text>
+    <text class="lab" x="224" y="300" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="310" text-anchor="end">SGLang latency · 5.76 ms / token</text>
+    <rect x="232" y="290" width="137" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="377" y="301">164</text>
+    <text class="lab" x="224" y="326" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="336" text-anchor="end">vLLM latency · 6.10 ms / token</text>
+    <rect x="232" y="316" width="126" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="366" y="327">150</text>
+    <text class="lab" x="224" y="352" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="362" text-anchor="end">vLLM latency · 6.41 ms / token</text>
+    <rect x="232" y="342" width="123" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="363" y="353">147</text>
     <text class="lab" x="224" y="378" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="388" text-anchor="end">SGLang throughput · 8.64 ms / token</text>
-    <rect x="232" y="368" width="111" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="351" y="379">113</text>
-    <text class="lab" x="224" y="404" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="414" text-anchor="end">vLLM throughput · 9.95 ms / token</text>
-    <rect x="232" y="394" width="98" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="338" y="405">99</text>
-    <text class="lab" x="224" y="430" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="440" text-anchor="end">SGLang throughput · 10.21 ms / token</text>
-    <rect x="232" y="420" width="94" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="334" y="431">96</text>
-    <text class="lab" x="224" y="456" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <text class="sub" x="224" y="466" text-anchor="end">SGLang latency · 14.97 ms / token</text>
-    <rect x="232" y="446" width="67" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="307" y="457">68</text>
-    <text class="lab" x="224" y="482" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <text class="sub" x="224" y="492" text-anchor="end">SGLang throughput · 15.00 ms / token</text>
-    <rect x="232" y="472" width="67" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="307" y="483">68</text>
+    <text class="sub" x="224" y="388" text-anchor="end">vLLM balanced · 6.44 ms / token</text>
+    <rect x="232" y="368" width="120" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="360" y="379">143</text>
+    <text class="lab" x="224" y="404" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="414" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
+    <rect x="232" y="394" width="117" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="357" y="405">140</text>
+    <text class="lab" x="224" y="430" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="440" text-anchor="end">vLLM latency · 6.84 ms / token</text>
+    <rect x="232" y="420" width="117" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="357" y="431">140</text>
+    <text class="lab" x="224" y="456" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="466" text-anchor="end">vLLM balanced · 7.02 ms / token</text>
+    <rect x="232" y="446" width="115" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="355" y="457">137</text>
+    <text class="lab" x="224" y="482" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="492" text-anchor="end">SGLang throughput · 7.16 ms / token</text>
+    <rect x="232" y="472" width="115" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="355" y="483">137</text>
+    <text class="lab" x="224" y="508" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="518" text-anchor="end">SGLang throughput · 7.07 ms / token</text>
+    <rect x="232" y="498" width="115" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="355" y="509">137</text>
+    <text class="lab" x="224" y="534" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="544" text-anchor="end">SGLang · 7.28 ms / token</text>
+    <rect x="232" y="524" width="103" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="343" y="535">123</text>
+    <text class="lab" x="224" y="560" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="570" text-anchor="end">SGLang throughput · 8.64 ms / token</text>
+    <rect x="232" y="550" width="95" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="335" y="561">113</text>
+    <text class="lab" x="224" y="586" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="596" text-anchor="end">vLLM balanced · 8.51 ms / token</text>
+    <rect x="232" y="576" width="95" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="335" y="587">113</text>
+    <text class="lab" x="224" y="612" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="622" text-anchor="end">vLLM throughput · 9.05 ms / token</text>
+    <rect x="232" y="602" width="92" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="332" y="613">109</text>
+    <text class="lab" x="224" y="638" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="648" text-anchor="end">vLLM throughput · 9.95 ms / token</text>
+    <rect x="232" y="628" width="83" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="323" y="639">99</text>
+    <text class="lab" x="224" y="664" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="674" text-anchor="end">SGLang throughput · 10.21 ms / token</text>
+    <rect x="232" y="654" width="80" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="320" y="665">96</text>
+    <text class="lab" x="224" y="690" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="700" text-anchor="end">SGLang latency · 14.97 ms / token</text>
+    <rect x="232" y="680" width="57" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="297" y="691">68</text>
+    <text class="lab" x="224" y="716" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="726" text-anchor="end">SGLang throughput · 15.00 ms / token</text>
+    <rect x="232" y="706" width="57" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="297" y="717">68</text>
+    <text class="lab" x="224" y="742" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="752" text-anchor="end">vLLM throughput · 19.15 ms / token</text>
+    <rect x="232" y="732" width="46" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="286" y="743">55</text>
   </svg>
   <figcaption>
     A single request, CHAT-S shape (2,048 in → 512 out). The sublabel is the
@@ -605,9 +653,15 @@ docker run --rm --gpus all --shm-size 32g --ulimit memlock=-1 --ipc=host \
   </figcaption>
 </figure>
 
-DeepSeek-V4.1-Flash under vLLM is the fastest single stream in the set at
-**294 tok/s and 3.3 ms between tokens** — and the same model under SGLang's
-published H200 cell is the *slowest* at 68 tok/s. That 4.3× gap is the one
+MiMo-V2.6-Flash-RL with DFlash is the fastest single stream in the set at
+**345 tok/s**, and MiMo-V2.6-Pro-RL with DFlash is third at 273 — a 1T model
+sitting above every 300–700B configuration here, on the strength of one
+speculative-decoding flag. Without it the same two checkpoints fall to 232 and
+140.
+
+Behind them, DeepSeek-V4.1-Flash under vLLM reaches **294 tok/s at 3.3 ms
+between tokens** — and the same model under SGLang's published H200 cell is the
+*slowest* in the chart at 68 tok/s. That 4.3× gap is the one
 result here that is not a tuning trade-off: it is the same checkpoint on the
 same GPUs, and part of it is speculative decoding, which vLLM runs and the
 SGLang H200 cell does not. SGLang's two published DeepSeek cells also return
@@ -622,14 +676,14 @@ batch 1.
 ## Concurrent request performance
 
 <figure class="qz">
-  <svg viewBox="0 0 640 528" role="img" aria-label="Batch output throughput at 64 concurrent requests for 18 serving configurations. Qwen3.8-Flash-Next FP8 6,475, DeepSeek-V4.1-Flash 5,700, GLM-5.3-Flash 5,433, DeepSeek-V4.1-Flash 5,343, GLM-5.3-Flash 5,025, GLM-5.3-Flash 4,490, Qwen3.8-Flash-Next FP8 4,453, Qwen3.8-Flash-Next bf16 4,446, GLM-5.3-Flash 4,369, Qwen3.8-Flash-Next bf16 4,327, Qwen3.8-Flash-Next FP8 4,276, GLM-5.3-Flash 4,093, GLM-5.3 4,009, DeepSeek-V4.1-Flash 2,184, DeepSeek-V4.1-Flash 2,184, GLM-5.3 2,051, GLM-5.3 2,014, GLM-5.3 1,516.">
-    <line x1="321" y1="20" x2="321" y2="491" stroke="var(--grid)"/>
+  <svg viewBox="0 0 640 788" role="img" aria-label="Batch output throughput at 64 concurrent requests for 28 serving configurations. Qwen3.8-Flash-Next FP8 6,475, DeepSeek-V4.1-Flash 5,700, GLM-5.3-Flash 5,433, DeepSeek-V4.1-Flash 5,343, GLM-5.3-Flash 5,025, MiMo-V2.6-Flash-RL 4,950, GLM-5.3-Flash 4,490, Qwen3.8-Flash-Next FP8 4,453, Qwen3.8-Flash-Next bf16 4,446, GLM-5.3-Flash 4,369, MiMo-V2.6-Flash-RL 4,358, Qwen3.8-Flash-Next bf16 4,327, Qwen3.8-Flash-Next FP8 4,276, MiMo-V2.6-Flash-RL 4,154, GLM-5.3-Flash 4,093, GLM-5.3 4,009, MiMo-V2.6-Pro-RL 3,198, MiMo-V2.6-Flash-RL 2,924, MiMo-V2.6-Pro-RL 2,869, MiMo-V2.6-Pro-RL 2,359, DeepSeek-V4.1-Flash 2,184, DeepSeek-V4.1-Flash 2,184, MiMo-V2.6-Pro-RL 2,096, GLM-5.3 2,051, MiMo-V2.6-Flash-RL 2,020, GLM-5.3 2,014, GLM-5.3 1,516, MiMo-V2.6-Pro-RL 1,103.">
+    <line x1="321" y1="20" x2="321" y2="751" stroke="var(--grid)"/>
     <text class="sub" x="321" y="16" text-anchor="middle">2,000</text>
-    <line x1="411" y1="20" x2="411" y2="491" stroke="var(--grid)"/>
+    <line x1="411" y1="20" x2="411" y2="751" stroke="var(--grid)"/>
     <text class="sub" x="411" y="16" text-anchor="middle">4,000</text>
-    <line x1="500" y1="20" x2="500" y2="491" stroke="var(--grid)"/>
+    <line x1="500" y1="20" x2="500" y2="751" stroke="var(--grid)"/>
     <text class="sub" x="500" y="16" text-anchor="middle">6,000</text>
-    <text class="ax" x="232" y="523" text-anchor="start">Under load · BATCH-D · 64 concurrent · output tok/s</text>
+    <text class="ax" x="232" y="783" text-anchor="start">Under load · BATCH-D · 64 concurrent · output tok/s</text>
     <text class="lab" x="224" y="40" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
     <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced · 64 concurrent</text>
     <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--vl)"/>
@@ -650,58 +704,98 @@ batch 1.
     <text class="sub" x="224" y="154" text-anchor="end">vLLM latency · 64 concurrent</text>
     <rect x="232" y="134" width="225" height="14" rx="3" fill="var(--ok)"/>
     <text class="val" x="465" y="145">5,025</text>
-    <text class="lab" x="224" y="170" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="180" text-anchor="end">vLLM throughput · 64 concurrent</text>
-    <rect x="232" y="160" width="201" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="441" y="171">4,490</text>
-    <text class="lab" x="224" y="196" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
-    <text class="sub" x="224" y="206" text-anchor="end">SGLang latency · 64 concurrent</text>
-    <rect x="232" y="186" width="199" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="439" y="197">4,453</text>
-    <text class="lab" x="224" y="222" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="lab" x="224" y="170" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="160" width="221" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="461" y="171">4,950</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="206" text-anchor="end">vLLM throughput · 64 concurrent</text>
+    <rect x="232" y="186" width="201" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="441" y="197">4,490</text>
+    <text class="lab" x="224" y="222" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
     <text class="sub" x="224" y="232" text-anchor="end">SGLang latency · 64 concurrent</text>
     <rect x="232" y="212" width="199" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="439" y="223">4,446</text>
-    <text class="lab" x="224" y="248" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="258" text-anchor="end">SGLang throughput · 64 concurrent</text>
-    <rect x="232" y="238" width="195" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="435" y="249">4,369</text>
-    <text class="lab" x="224" y="274" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="val" x="439" y="223">4,453</text>
+    <text class="lab" x="224" y="248" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="258" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="238" width="199" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="439" y="249">4,446</text>
+    <text class="lab" x="224" y="274" text-anchor="end">GLM-5.3-Flash</text>
     <text class="sub" x="224" y="284" text-anchor="end">SGLang throughput · 64 concurrent</text>
-    <rect x="232" y="264" width="193" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="433" y="275">4,327</text>
-    <text class="lab" x="224" y="300" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
-    <text class="sub" x="224" y="310" text-anchor="end">SGLang throughput · 64 concurrent</text>
-    <rect x="232" y="290" width="191" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="431" y="301">4,276</text>
-    <text class="lab" x="224" y="326" text-anchor="end">GLM-5.3-Flash</text>
-    <text class="sub" x="224" y="336" text-anchor="end">SGLang latency · 64 concurrent</text>
-    <rect x="232" y="316" width="183" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="423" y="327">4,093</text>
-    <text class="lab" x="224" y="352" text-anchor="end">GLM-5.3</text>
+    <rect x="232" y="264" width="195" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="435" y="275">4,369</text>
+    <text class="lab" x="224" y="300" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="310" text-anchor="end">SGLang · 64 concurrent</text>
+    <rect x="232" y="290" width="195" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="435" y="301">4,358</text>
+    <text class="lab" x="224" y="326" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="336" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="316" width="193" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="433" y="327">4,327</text>
+    <text class="lab" x="224" y="352" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
     <text class="sub" x="224" y="362" text-anchor="end">SGLang throughput · 64 concurrent</text>
-    <rect x="232" y="342" width="179" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="419" y="353">4,009</text>
-    <text class="lab" x="224" y="378" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <text class="sub" x="224" y="388" text-anchor="end">SGLang throughput · 64 concurrent</text>
-    <rect x="232" y="368" width="98" height="14" rx="3" fill="var(--bad)"/>
-    <text class="val" x="338" y="379">2,184</text>
-    <text class="lab" x="224" y="404" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <rect x="232" y="342" width="191" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="431" y="353">4,276</text>
+    <text class="lab" x="224" y="378" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="388" text-anchor="end">vLLM latency + DFlash · 64 concurrent</text>
+    <rect x="232" y="368" width="186" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="426" y="379">4,154</text>
+    <text class="lab" x="224" y="404" text-anchor="end">GLM-5.3-Flash</text>
     <text class="sub" x="224" y="414" text-anchor="end">SGLang latency · 64 concurrent</text>
-    <rect x="232" y="394" width="98" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="338" y="405">2,184</text>
+    <rect x="232" y="394" width="183" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="423" y="405">4,093</text>
     <text class="lab" x="224" y="430" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="440" text-anchor="end">vLLM balanced · 64 concurrent</text>
-    <rect x="232" y="420" width="92" height="14" rx="3" fill="var(--vl)"/>
-    <text class="val" x="332" y="431">2,051</text>
-    <text class="lab" x="224" y="456" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="466" text-anchor="end">vLLM latency · 64 concurrent</text>
-    <rect x="232" y="446" width="90" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="330" y="457">2,014</text>
-    <text class="lab" x="224" y="482" text-anchor="end">GLM-5.3</text>
-    <text class="sub" x="224" y="492" text-anchor="end">SGLang latency · 64 concurrent</text>
-    <rect x="232" y="472" width="68" height="14" rx="3" fill="var(--ok)"/>
-    <text class="val" x="308" y="483">1,516</text>
+    <text class="sub" x="224" y="440" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="420" width="179" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="419" y="431">4,009</text>
+    <text class="lab" x="224" y="456" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="466" text-anchor="end">vLLM latency + DFlash · 64 concurrent</text>
+    <rect x="232" y="446" width="143" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="383" y="457">3,198</text>
+    <text class="lab" x="224" y="482" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="492" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="472" width="131" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="371" y="483">2,924</text>
+    <text class="lab" x="224" y="508" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="518" text-anchor="end">SGLang · 64 concurrent</text>
+    <rect x="232" y="498" width="128" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="368" y="509">2,869</text>
+    <text class="lab" x="224" y="534" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="544" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="524" width="105" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="345" y="535">2,359</text>
+    <text class="lab" x="224" y="560" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="570" text-anchor="end">SGLang throughput · 64 concurrent</text>
+    <rect x="232" y="550" width="98" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="338" y="561">2,184</text>
+    <text class="lab" x="224" y="586" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="596" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="576" width="98" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="338" y="587">2,184</text>
+    <text class="lab" x="224" y="612" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="622" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="602" width="94" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="334" y="613">2,096</text>
+    <text class="lab" x="224" y="638" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="648" text-anchor="end">vLLM balanced · 64 concurrent</text>
+    <rect x="232" y="628" width="92" height="14" rx="3" fill="var(--vl)"/>
+    <text class="val" x="332" y="639">2,051</text>
+    <text class="lab" x="224" y="664" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="674" text-anchor="end">vLLM throughput · 64 concurrent</text>
+    <rect x="232" y="654" width="90" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="330" y="665">2,020</text>
+    <text class="lab" x="224" y="690" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="700" text-anchor="end">vLLM latency · 64 concurrent</text>
+    <rect x="232" y="680" width="90" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="330" y="691">2,014</text>
+    <text class="lab" x="224" y="716" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="726" text-anchor="end">SGLang latency · 64 concurrent</text>
+    <rect x="232" y="706" width="68" height="14" rx="3" fill="var(--ok)"/>
+    <text class="val" x="308" y="717">1,516</text>
+    <text class="lab" x="224" y="742" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="752" text-anchor="end">vLLM throughput · 64 concurrent</text>
+    <rect x="232" y="732" width="49" height="14" rx="3" fill="var(--bad)"/>
+    <text class="val" x="289" y="743">1,103</text>
   </svg>
   <figcaption>
     Sustained output on BATCH-D (4,096 in → 8,192 out) at 64 concurrent requests.
@@ -786,6 +880,310 @@ No configuration is good at everything. The best API-S cell is mid-table on
 DOC-L; the best DOC-L cell is mid-table on API-S. If your traffic is one shape,
 benchmark that shape.
 
+
+## Results per benchmark
+
+The same 64-stream measurement, one panel per workload shape, each model shown
+with whichever of its configurations was fastest on that shape. The point of
+splitting it out is that the ordering genuinely changes between panels — no
+model wins everywhere, and two of them win nothing.
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on API-S at 64 concurrent requests. MiMo-V2.6-Flash-RL 2,511, Qwen3.8-Flash-Next FP8 2,435, Qwen3.8-Flash-Next bf16 1,857, DeepSeek-V4.1-Flash 1,620, GLM-5.3-Flash 1,529, MiMo-V2.6-Pro-RL 1,335, GLM-5.3 1,090.">
+    <line x1="347" y1="20" x2="347" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="347" y="16" text-anchor="middle">1,000</text>
+    <line x1="462" y1="20" x2="462" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="462" y="16" text-anchor="middle">2,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">API-S · 2k in / 256 out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="529" y="41">2,511</text>
+    <text class="lab" x="224" y="66" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="56" width="280" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="520" y="67">2,435</text>
+    <text class="lab" x="224" y="92" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="102" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="82" width="214" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="454" y="93">1,857</text>
+    <text class="lab" x="224" y="118" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="128" text-anchor="end">vLLM latency</text>
+    <rect x="232" y="108" width="187" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="427" y="119">1,620</text>
+    <text class="lab" x="224" y="144" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="134" width="176" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="416" y="145">1,529</text>
+    <text class="lab" x="224" y="170" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="160" width="154" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="394" y="171">1,335</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="186" width="126" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="366" y="197">1,090</text>
+  </svg>
+  <figcaption>
+    <strong>API-S</strong> · 2,048 in → 256 out. Short API calls. The shape where prefill dominates and the engine has least room to hide.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on CHAT-S at 64 concurrent requests. MiMo-V2.6-Flash-RL 4,384, Qwen3.8-Flash-Next FP8 3,398, DeepSeek-V4.1-Flash 2,927, GLM-5.3-Flash 2,840, MiMo-V2.6-Pro-RL 2,679, Qwen3.8-Flash-Next bf16 2,403, GLM-5.3 1,521.">
+    <line x1="364" y1="20" x2="364" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="364" y="16" text-anchor="middle">2,000</text>
+    <line x1="496" y1="20" x2="496" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="496" y="16" text-anchor="middle">4,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">CHAT-S · 2k in / 512 out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="529" y="41">4,384</text>
+    <text class="lab" x="224" y="66" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="56" width="224" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="464" y="67">3,398</text>
+    <text class="lab" x="224" y="92" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM latency</text>
+    <rect x="232" y="82" width="193" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="433" y="93">2,927</text>
+    <text class="lab" x="224" y="118" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="108" width="187" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="427" y="119">2,840</text>
+    <text class="lab" x="224" y="144" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="134" width="177" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="417" y="145">2,679</text>
+    <text class="lab" x="224" y="170" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="180" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="160" width="159" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="399" y="171">2,403</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="186" width="100" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="340" y="197">1,521</text>
+  </svg>
+  <figcaption>
+    <strong>CHAT-S</strong> · 2,048 in → 512 out. A short chat turn — the most common interactive shape.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on CODE-I at 64 concurrent requests. Qwen3.8-Flash-Next FP8 3,102, MiMo-V2.6-Flash-RL 2,476, GLM-5.3-Flash 2,097, Qwen3.8-Flash-Next bf16 1,936, DeepSeek-V4.1-Flash 1,731, MiMo-V2.6-Pro-RL 1,648, GLM-5.3 930.">
+    <line x1="325" y1="20" x2="325" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="325" y="16" text-anchor="middle">1,000</text>
+    <line x1="419" y1="20" x2="419" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="419" y="16" text-anchor="middle">2,000</text>
+    <line x1="512" y1="20" x2="512" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="512" y="16" text-anchor="middle">3,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">CODE-I · 16k in / 2k out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="529" y="41">3,102</text>
+    <text class="lab" x="224" y="66" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="56" width="231" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="471" y="67">2,476</text>
+    <text class="lab" x="224" y="92" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="82" width="196" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="436" y="93">2,097</text>
+    <text class="lab" x="224" y="118" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang latency</text>
+    <rect x="232" y="108" width="181" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="421" y="119">1,936</text>
+    <text class="lab" x="224" y="144" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM latency</text>
+    <rect x="232" y="134" width="161" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="401" y="145">1,731</text>
+    <text class="lab" x="224" y="170" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="160" width="154" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="394" y="171">1,648</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="186" width="87" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="327" y="197">930</text>
+  </svg>
+  <figcaption>
+    <strong>CODE-I</strong> · 16,384 in → 2,048 out. Code completion with a file of context in the prompt.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on CHAT-L at 64 concurrent requests. MiMo-V2.6-Flash-RL 1,989, Qwen3.8-Flash-Next FP8 1,838, GLM-5.3-Flash 1,317, Qwen3.8-Flash-Next bf16 1,189, DeepSeek-V4.1-Flash 1,006, MiMo-V2.6-Pro-RL 987, GLM-5.3 468.">
+    <line x1="377" y1="20" x2="377" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="377" y="16" text-anchor="middle">1,000</text>
+    <line x1="523" y1="20" x2="523" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="523" y="16" text-anchor="middle">2,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">CHAT-L · 32k in / 2k out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="529" y="41">1,989</text>
+    <text class="lab" x="224" y="66" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="56" width="267" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="507" y="67">1,838</text>
+    <text class="lab" x="224" y="92" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM throughput</text>
+    <rect x="232" y="82" width="192" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="432" y="93">1,317</text>
+    <text class="lab" x="224" y="118" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang latency</text>
+    <rect x="232" y="108" width="173" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="413" y="119">1,189</text>
+    <text class="lab" x="224" y="144" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM latency</text>
+    <rect x="232" y="134" width="146" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="386" y="145">1,006</text>
+    <text class="lab" x="224" y="170" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="160" width="144" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="384" y="171">987</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="186" width="68" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="308" y="197">468</text>
+  </svg>
+  <figcaption>
+    <strong>CHAT-L</strong> · 32,768 in → 2,048 out. A long conversation carrying its own history forward.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on CODE-A at 64 concurrent requests. Qwen3.8-Flash-Next FP8 2,082, GLM-5.3-Flash 1,699, MiMo-V2.6-Flash-RL 1,587, Qwen3.8-Flash-Next bf16 1,155, DeepSeek-V4.1-Flash 992, MiMo-V2.6-Pro-RL 892, GLM-5.3 392.">
+    <line x1="371" y1="20" x2="371" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="371" y="16" text-anchor="middle">1,000</text>
+    <line x1="510" y1="20" x2="510" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="510" y="16" text-anchor="middle">2,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">CODE-A · 64k in / 4k out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="529" y="41">2,082</text>
+    <text class="lab" x="224" y="66" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM throughput</text>
+    <rect x="232" y="56" width="236" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="476" y="67">1,699</text>
+    <text class="lab" x="224" y="92" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="82" width="221" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="461" y="93">1,587</text>
+    <text class="lab" x="224" y="118" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang latency</text>
+    <rect x="232" y="108" width="161" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="401" y="119">1,155</text>
+    <text class="lab" x="224" y="144" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM throughput</text>
+    <rect x="232" y="134" width="138" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="378" y="145">992</text>
+    <text class="lab" x="224" y="170" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="160" width="124" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="364" y="171">892</text>
+    <text class="lab" x="224" y="196" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="206" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="186" width="55" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="295" y="197">392</text>
+  </svg>
+  <figcaption>
+    <strong>CODE-A</strong> · 65,536 in → 4,096 out. Whole-repository analysis: a large prompt and a substantial answer.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 216" role="img" aria-label="Best output throughput per model on DOC-L at 64 concurrent requests. GLM-5.3-Flash 587, MiMo-V2.6-Flash-RL 482, Qwen3.8-Flash-Next FP8 378, Qwen3.8-Flash-Next bf16 359, MiMo-V2.6-Pro-RL 255, GLM-5.3 99.">
+    <line x1="331" y1="20" x2="331" y2="179" stroke="var(--grid)"/>
+    <text class="sub" x="331" y="16" text-anchor="middle">200</text>
+    <line x1="429" y1="20" x2="429" y2="179" stroke="var(--grid)"/>
+    <text class="sub" x="429" y="16" text-anchor="middle">400</text>
+    <line x1="528" y1="20" x2="528" y2="179" stroke="var(--grid)"/>
+    <text class="sub" x="528" y="16" text-anchor="middle">600</text>
+    <text class="ax" x="232" y="211" text-anchor="start">DOC-L · 128k in / 2k out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM throughput</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="529" y="41">587</text>
+    <text class="lab" x="224" y="66" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="56" width="238" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="478" y="67">482</text>
+    <text class="lab" x="224" y="92" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="82" width="186" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="426" y="93">378</text>
+    <text class="lab" x="224" y="118" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="128" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="108" width="177" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="417" y="119">359</text>
+    <text class="lab" x="224" y="144" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="154" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="134" width="126" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="366" y="145">255</text>
+    <text class="lab" x="224" y="170" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="180" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="160" width="49" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="289" y="171">99</text>
+  </svg>
+  <figcaption>
+    <strong>DOC-L</strong> · 131,072 in → 2,048 out. The 128k document shape. Prefill dominates completely, and the ranking here looks unlike every other panel.
+  </figcaption>
+</figure>
+
+<figure class="qz">
+  <svg viewBox="0 0 640 242" role="img" aria-label="Best output throughput per model on BATCH-D at 64 concurrent requests. Qwen3.8-Flash-Next FP8 6,475, DeepSeek-V4.1-Flash 5,700, GLM-5.3-Flash 5,433, MiMo-V2.6-Flash-RL 4,950, Qwen3.8-Flash-Next bf16 4,446, GLM-5.3 4,009, MiMo-V2.6-Pro-RL 3,198.">
+    <line x1="321" y1="20" x2="321" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="321" y="16" text-anchor="middle">2,000</text>
+    <line x1="411" y1="20" x2="411" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="411" y="16" text-anchor="middle">4,000</text>
+    <line x1="500" y1="20" x2="500" y2="205" stroke="var(--grid)"/>
+    <text class="sub" x="500" y="16" text-anchor="middle">6,000</text>
+    <text class="ax" x="232" y="237" text-anchor="start">BATCH-D · 4k in / 8k out · 64 concurrent · output tok/s</text>
+    <text class="lab" x="224" y="40" text-anchor="end">Qwen3.8-Flash-Next FP8</text>
+    <text class="sub" x="224" y="50" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="30" width="289" height="14" rx="3" fill="var(--s5)"/>
+    <text class="val" x="529" y="41">6,475</text>
+    <text class="lab" x="224" y="66" text-anchor="end">DeepSeek-V4.1-Flash</text>
+    <text class="sub" x="224" y="76" text-anchor="end">vLLM throughput</text>
+    <rect x="232" y="56" width="255" height="14" rx="3" fill="var(--s3)"/>
+    <text class="val" x="495" y="67">5,700</text>
+    <text class="lab" x="224" y="92" text-anchor="end">GLM-5.3-Flash</text>
+    <text class="sub" x="224" y="102" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="82" width="243" height="14" rx="3" fill="var(--s2)"/>
+    <text class="val" x="483" y="93">5,433</text>
+    <text class="lab" x="224" y="118" text-anchor="end">MiMo-V2.6-Flash-RL</text>
+    <text class="sub" x="224" y="128" text-anchor="end">vLLM balanced</text>
+    <rect x="232" y="108" width="221" height="14" rx="3" fill="var(--s6)"/>
+    <text class="val" x="461" y="119">4,950</text>
+    <text class="lab" x="224" y="144" text-anchor="end">Qwen3.8-Flash-Next bf16</text>
+    <text class="sub" x="224" y="154" text-anchor="end">SGLang latency</text>
+    <rect x="232" y="134" width="199" height="14" rx="3" fill="var(--s4)"/>
+    <text class="val" x="439" y="145">4,446</text>
+    <text class="lab" x="224" y="170" text-anchor="end">GLM-5.3</text>
+    <text class="sub" x="224" y="180" text-anchor="end">SGLang throughput</text>
+    <rect x="232" y="160" width="179" height="14" rx="3" fill="var(--s1)"/>
+    <text class="val" x="419" y="171">4,009</text>
+    <text class="lab" x="224" y="196" text-anchor="end">MiMo-V2.6-Pro-RL</text>
+    <text class="sub" x="224" y="206" text-anchor="end">vLLM latency + DFlash</text>
+    <rect x="232" y="186" width="143" height="14" rx="3" fill="var(--s7)"/>
+    <text class="val" x="383" y="197">3,198</text>
+  </svg>
+  <figcaption>
+    <strong>BATCH-D</strong> · 4,096 in → 8,192 out. Decode-heavy batch generation — the shape that rewards raw token production.
+  </figcaption>
+</figure>
+
+Two things are worth pulling out. **DeepSeek-V4.1-Flash is missing from the
+DOC-L panel** — not because it was slow, but because no request finished inside
+the window on any of its configurations, so there is no rate to plot. And
+MiMo-V2.6-Pro-RL, the 1T model, places mid-table or last on every shape except
+the single-stream chart further up: parameter count buys quality, not tokens
+per second.
+
 ## Speculative decoding: DFlash
 
 The largest single improvement in this whole comparison is not a parallelism
@@ -838,42 +1236,91 @@ loses to the published cell: 167 against 201 tok/s single-stream, 2,151 against
 ## Throughput vs concurrency
 
 <figure class="qz">
-  <svg viewBox="0 0 640 318" role="img" aria-label="Output throughput against concurrency on BATCH-D for three GLM-5.3-Flash configurations. SGLang latency: 205 at c1, 2,158 at c16, 4,093 at c64; SGLang throughput: 171 at c1, 1,638 at c16, 4,369 at c64; vLLM throughput: 137 at c1, 1,403 at c16, 4,490 at c64.">
-    <rect x="58" y="8" width="13" height="3" rx="1.5" fill="var(--ok)"/>
-    <text class="sub" x="76" y="12.5">SGLang latency</text>
-    <rect x="162" y="8" width="13" height="3" rx="1.5" fill="var(--bad)"/>
-    <text class="sub" x="180" y="12.5">SGLang throughput</text>
-    <rect x="284" y="8" width="13" height="3" rx="1.5" fill="var(--vl)"/>
-    <text class="sub" x="302" y="12.5">vLLM throughput</text>
-    <line x1="58" y1="87" x2="566" y2="87" stroke="var(--grid)"/>
-    <text class="sub" x="49" y="91" text-anchor="end">4k</text>
-    <text class="sub" x="58" y="290" text-anchor="middle">1</text>
-    <text class="sub" x="312" y="290" text-anchor="middle">16</text>
-    <text class="sub" x="566" y="290" text-anchor="middle">64</text>
-    <text class="ax" x="312" y="306" text-anchor="middle">concurrent requests</text>
-    <polyline points="58,263 312,172 566,83" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="58" cy="263" r="3.5" fill="var(--ok)"/>
-    <circle cx="312" cy="172" r="3.5" fill="var(--ok)"/>
-    <circle cx="566" cy="83" r="3.5" fill="var(--ok)"/>
-    <polyline points="58,264 312,196 566,70" fill="none" stroke="var(--bad)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="58" cy="264" r="3.5" fill="var(--bad)"/>
-    <circle cx="312" cy="196" r="3.5" fill="var(--bad)"/>
-    <circle cx="566" cy="70" r="3.5" fill="var(--bad)"/>
-    <polyline points="58,266 312,207 566,65" fill="none" stroke="var(--vl)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="58" cy="266" r="3.5" fill="var(--vl)"/>
-    <circle cx="312" cy="207" r="3.5" fill="var(--vl)"/>
-    <circle cx="566" cy="65" r="3.5" fill="var(--vl)"/>
-    <text class="val" x="574" y="68" fill="var(--vl)">4,490</text>
-    <text class="val" x="574" y="81" fill="var(--bad)">4,369</text>
-    <text class="val" x="574" y="94" fill="var(--ok)">4,093</text>
+  <svg viewBox="0 0 640 366" role="img" aria-label="Output throughput against concurrency on BATCH-D, best configuration for each of 7 models. GLM-5.3: 137 at c1, 1,068 at c16, 4,009 at c64; GLM-5.3-Flash: 205 at c1, 1,848 at c16, 5,433 at c64; DeepSeek-V4.1-Flash: 205 at c1, 2,407 at c16, 5,700 at c64; Qwen3.8-Flash-Next bf16: 307 at c1, 2,206 at c16, 4,446 at c64; Qwen3.8-Flash-Next FP8: 171 at c1, 2,160 at c16, 6,475 at c64; MiMo-V2.6-Flash-RL: 205 at c1, 2,163 at c16, 4,950 at c64; MiMo-V2.6-Pro-RL: 341 at c1, 1,510 at c16, 3,198 at c64.">
+    <rect x="58" y="8" width="13" height="3" rx="1.5" fill="var(--s1)"/>
+    <text class="sub" x="76" y="12.5">GLM-5.3</text>
+    <rect x="121" y="8" width="13" height="3" rx="1.5" fill="var(--s2)"/>
+    <text class="sub" x="139" y="12.5">GLM-5.3-Flash</text>
+    <rect x="219" y="8" width="13" height="3" rx="1.5" fill="var(--s3)"/>
+    <text class="sub" x="237" y="12.5">DeepSeek-V4.1-Flash</text>
+    <rect x="353" y="8" width="13" height="3" rx="1.5" fill="var(--s4)"/>
+    <text class="sub" x="371" y="12.5">Qwen3.8-Flash-Next bf16</text>
+    <rect x="58" y="24" width="13" height="3" rx="1.5" fill="var(--s5)"/>
+    <text class="sub" x="76" y="28.5">Qwen3.8-Flash-Next FP8</text>
+    <rect x="209" y="24" width="13" height="3" rx="1.5" fill="var(--s6)"/>
+    <text class="sub" x="227" y="28.5">MiMo-V2.6-Flash-RL</text>
+    <rect x="337" y="24" width="13" height="3" rx="1.5" fill="var(--s7)"/>
+    <text class="sub" x="355" y="28.5">MiMo-V2.6-Pro-RL</text>
+    <line x1="58" y1="285" x2="562" y2="285" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="289" text-anchor="end">1k</text>
+    <line x1="58" y1="250" x2="562" y2="250" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="254" text-anchor="end">2k</text>
+    <line x1="58" y1="216" x2="562" y2="216" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="219" text-anchor="end">3k</text>
+    <line x1="58" y1="181" x2="562" y2="181" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="184" text-anchor="end">4k</text>
+    <line x1="58" y1="146" x2="562" y2="146" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="149" text-anchor="end">5k</text>
+    <line x1="58" y1="111" x2="562" y2="111" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="115" text-anchor="end">6k</text>
+    <line x1="58" y1="76" x2="562" y2="76" stroke="var(--grid)"/>
+    <text class="sub" x="49" y="80" text-anchor="end">7k</text>
+    <text class="sub" x="58" y="338" text-anchor="middle">1</text>
+    <text class="sub" x="310" y="338" text-anchor="middle">16</text>
+    <text class="sub" x="562" y="338" text-anchor="middle">64</text>
+    <text class="ax" x="310" y="354" text-anchor="middle">concurrent requests</text>
+    <polyline points="58,315 310,283 562,180" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="315" r="3.5" fill="var(--s1)"/>
+    <circle cx="310" cy="283" r="3.5" fill="var(--s1)"/>
+    <circle cx="562" cy="180" r="3.5" fill="var(--s1)"/>
+    <polyline points="58,313 310,256 562,131" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="313" r="3.5" fill="var(--s2)"/>
+    <circle cx="310" cy="256" r="3.5" fill="var(--s2)"/>
+    <circle cx="562" cy="131" r="3.5" fill="var(--s2)"/>
+    <polyline points="58,313 310,236 562,122" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="313" r="3.5" fill="var(--s3)"/>
+    <circle cx="310" cy="236" r="3.5" fill="var(--s3)"/>
+    <circle cx="562" cy="122" r="3.5" fill="var(--s3)"/>
+    <polyline points="58,309 310,243 562,165" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="309" r="3.5" fill="var(--s4)"/>
+    <circle cx="310" cy="243" r="3.5" fill="var(--s4)"/>
+    <circle cx="562" cy="165" r="3.5" fill="var(--s4)"/>
+    <polyline points="58,314 310,245 562,95" fill="none" stroke="var(--s5)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="314" r="3.5" fill="var(--s5)"/>
+    <circle cx="310" cy="245" r="3.5" fill="var(--s5)"/>
+    <circle cx="562" cy="95" r="3.5" fill="var(--s5)"/>
+    <polyline points="58,313 310,245 562,148" fill="none" stroke="var(--s6)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="313" r="3.5" fill="var(--s6)"/>
+    <circle cx="310" cy="245" r="3.5" fill="var(--s6)"/>
+    <circle cx="562" cy="148" r="3.5" fill="var(--s6)"/>
+    <polyline points="58,308 310,267 562,209" fill="none" stroke="var(--s7)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="58" cy="308" r="3.5" fill="var(--s7)"/>
+    <circle cx="310" cy="267" r="3.5" fill="var(--s7)"/>
+    <circle cx="562" cy="209" r="3.5" fill="var(--s7)"/>
+    <text class="val" x="570" y="98" fill="var(--s5)">6,475</text>
+    <text class="val" x="570" y="125" fill="var(--s3)">5,700</text>
+    <text class="val" x="570" y="138" fill="var(--s2)">5,433</text>
+    <text class="val" x="570" y="151" fill="var(--s6)">4,950</text>
+    <text class="val" x="570" y="169" fill="var(--s4)">4,446</text>
+    <text class="val" x="570" y="184" fill="var(--s1)">4,009</text>
+    <text class="val" x="570" y="212" fill="var(--s7)">3,198</text>
   </svg>
   <figcaption>
-    GLM-5.3-Flash on BATCH-D. The low-latency recipe leads at low concurrency and
-    is overtaken between 16 and 64 concurrent requests.
+    BATCH-D (4,096 in → 8,192 out), each model shown with its best configuration
+    at 64 concurrent requests. Every model gains an order of magnitude from 1 to
+    64 streams; they do not gain it at the same rate, and the ordering at c1 is
+    not the ordering at c64.
   </figcaption>
 </figure>
 
-Every model shows this shape. What is **not** portable is where the lines cross:
+Every model shows the same shape, and none of them is close to saturated at 16
+streams. Qwen3.8-Flash-Next FP8 starts second-slowest of the seven at one stream
+and finishes first at 64; MiMo-V2.6-Pro-RL does the opposite, leading at c1 and
+ending last. Ranking a model on single-stream numbers tells you very little
+about how it will serve a loaded endpoint.
+
+Within a model, the low-latency and throughput recipes cross somewhere — and
+where they cross is **not** portable either:
 
 | model | crossover |
 |---|---|
@@ -881,6 +1328,8 @@ Every model shows this shape. What is **not** portable is where the lines cross:
 | GLM-5.3 | between 16 and 64 |
 | GLM-5.3-Flash | between 16 and 64 |
 | Qwen3.8-Flash-Next (bf16 and FP8) | above 64 |
+| MiMo-V2.6-Flash-RL | between 1 and 16 — but only against the balanced recipe |
+| MiMo-V2.6-Pro-RL | never — the latency recipe leads at every concurrency measured |
 
 A rule of thumb learned on one model picks the wrong recipe for another. If you
 serve Qwen at 32 concurrent requests, the low-latency recipe is still the faster
