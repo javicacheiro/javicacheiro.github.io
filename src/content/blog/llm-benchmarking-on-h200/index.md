@@ -3,7 +3,6 @@ title: 'Serving LLMs on a single 8×H200 server'
 description: 'Benchmarking six open-weight models, including MiMo-V2.6, on one 8×H200 server.'
 publishDate: 2026-09-24
 updatedDate: 2026-09-27
-draft: true
 tags:
   - ai
   - llm
