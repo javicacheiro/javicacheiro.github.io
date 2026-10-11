@@ -2,7 +2,6 @@
 title: 'What speculative decoding actually costs'
 description: 'Speculation off versus on for five mechanisms on 8×H200 — and why it loses money under load.'
 publishDate: 2026-09-30
-draft: true
 tags:
   - ai
   - llm
