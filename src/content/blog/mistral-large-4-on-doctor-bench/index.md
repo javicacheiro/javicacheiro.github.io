@@ -228,6 +228,34 @@ That's the other thing worth saying about Mistral's row. It played no part in bu
 doctor-bench. Kimi K3 picked and solved part of the problems and wrote the training data for my
 experts, so its row carries an asterisk. Mistral's doesn't.
 
+## Update, 1 November: more effort, and a repeat run
+
+I left Mistral running overnight with three more configurations. All of them are side runs; the
+leaderboard row is still 88.6.
+
+| run | budget | truncated | mean | build | ml-systems | linux |
+|---|---:|---:|---:|---:|---:|---:|
+| `reasoning_effort: low` | 4,096 | 248 | 88.6 | 80.8 | 88.6 | 91.0 |
+| `reasoning_effort: low`, repeat | 4,096 | 274 | 88.8 | 81.3 | 89.5 | 89.7 |
+| `reasoning_effort: low` | 16,384 | 56 | 92.1 | 86.2 | 94.1 | 91.6 |
+| `reasoning_effort: medium` | 32,768 | 73 | 92.0 | 87.0 | 95.2 | 89.7 |
+| `reasoning_effort: high` | 32,768 | 78 | 92.6 | 91.2 | 94.0 | 89.1 |
+
+High effort, which is Mistral's default, scores 92.6. That's the best mean I've measured on
+doctor-bench. Nearly all the gain over low effort with a big budget is in C/C++ builds, which go
+from 86.2 to 91.2. Medium effort buys nothing over low with room to finish. Linux services get
+slightly worse with more reasoning, not better. Keep in mind this is thinking mode at 32,768
+tokens, so it belongs next to the other thinking rows (the best of those is my Qwen3.8 expert at
+89.8), not next to Kimi K3's 91.7 with reasoning off.
+
+The repeat run was the most useful one. Same endpoint, same settings, greedy decoding, and the
+mean moved by only 0.15. But 329 of the 4,722 problems flipped between pass and fail, 168 one way
+and 161 the other, and single benchmarks moved by up to 3.3 points. My guess is the shared
+endpoint: other users' requests change how the server batches mine, and it also runs speculative
+decoding. "Greedy" doesn't mean "repeatable" there. So read every single-run number on this blog,
+including the frontier rows, as good to roughly ±0.2 on the mean and ±3 on any one benchmark.
+Gaps of a few tenths between models are noise.
+
 ## How it was run
 
 Mistral Large 4 ran from the
@@ -250,3 +278,5 @@ parser, which wasn't true for Muse.
 |---|---:|---|---:|---:|
 | Mistral Large 4 | 4,096 | `reasoning_effort: low` | 248 / 4,722 | 88.6 |
 | Mistral Large 4 † | 16,384 | `reasoning_effort: low` | 56 / 4,722 | 92.1 |
+| Mistral Large 4 † | 32,768 | `reasoning_effort: medium` | 73 / 4,722 | 92.0 |
+| Mistral Large 4 † | 32,768 | `reasoning_effort: high` | 78 / 4,722 | 92.6 |
