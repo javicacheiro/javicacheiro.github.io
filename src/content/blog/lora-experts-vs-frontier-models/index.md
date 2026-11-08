@@ -39,7 +39,7 @@ Qwen3.8-27B, NVIDIA's Nemotron-3.5 Super VL (120B total, 12B active) and Aleph A
 DeepSeek-V4.1-Flash and MiMo-V2.6-Pro and about a point behind GLM-5.3-Flash.
 
 <figure class="lx">
-  <svg viewBox="0 0 640 448" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Kimi K3 ‡ 91.7; GLM-5.3 91.5; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking 89.8; Qwen3.8-27B + LoRA 88.6; DeepSeek-V4.1-Flash 88.4; Nemotron Super VL + LoRA 88.4; MiMo-V2.6-Pro 88.3; Nemotron Super VL, thinking 84.2; MiMo-V2.6-Flash 83.9; Qwen3.8-27B, thinking 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Kolibri-1 60.5; Qwen3-4B 51.3.">
+  <svg viewBox="0 0 640 448" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Kimi K3 ‡ 91.7; GLM-5.3 91.6; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking 89.8; Qwen3.8-27B + LoRA 88.6; DeepSeek-V4.1-Flash 88.6; Nemotron Super VL + LoRA 88.4; MiMo-V2.6-Pro 88.4; Nemotron Super VL, thinking 84.2; MiMo-V2.6-Flash 84.2; Qwen3.8-27B, thinking 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Kolibri-1 60.5; Qwen3-4B 51.3.">
     <line x1="230" x2="230" y1="8" y2="416" stroke="var(--grid)" stroke-width="1"/>
     <text class="ax" x="230" y="434" text-anchor="middle">0%</text>
     <line x1="322" x2="322" y1="8" y2="416" stroke="var(--grid)" stroke-width="1"/>
@@ -54,8 +54,8 @@ DeepSeek-V4.1-Flash and MiMo-V2.6-Pro and about a point behind GLM-5.3-Flash.
     <rect x="230" y="14" width="339.3" height="15" rx="2" fill="var(--mut)"/>
     <text class="val" x="575.3" y="26">91.7</text>
     <text class="lab" x="220" y="50" text-anchor="end">GLM-5.3</text>
-    <rect x="230" y="38" width="338.5" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="574.5" y="50">91.5</text>
+    <rect x="230" y="38" width="338.8" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="574.8" y="50">91.6</text>
     <text class="lab" x="220" y="74" text-anchor="end">GLM-5.3-Flash</text>
     <rect x="230" y="62" width="336.3" height="15" rx="2" fill="var(--mut)"/>
     <text class="val" x="572.3" y="74">90.9</text>
@@ -66,20 +66,20 @@ DeepSeek-V4.1-Flash and MiMo-V2.6-Pro and about a point behind GLM-5.3-Flash.
     <rect x="230" y="110" width="327.8" height="15" rx="2" fill="var(--acc)"/>
     <text class="val" x="563.8" y="122">88.6</text>
     <text class="lab" x="220" y="146" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <rect x="230" y="134" width="327.1" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="563.1" y="146">88.4</text>
+    <rect x="230" y="134" width="327.7" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="563.7" y="146">88.6</text>
     <text class="lab" x="220" y="170" text-anchor="end">Nemotron Super VL + LoRA</text>
     <rect x="230" y="158" width="327.1" height="15" rx="2" fill="var(--acc)"/>
     <text class="val" x="563.1" y="170">88.4</text>
     <text class="lab" x="220" y="194" text-anchor="end">MiMo-V2.6-Pro</text>
-    <rect x="230" y="182" width="326.7" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="562.7" y="194">88.3</text>
+    <rect x="230" y="182" width="327.2" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="563.2" y="194">88.4</text>
     <text class="lab" x="220" y="218" text-anchor="end">Nemotron Super VL, thinking</text>
     <rect x="230" y="206" width="311.5" height="15" rx="2" fill="var(--base)"/>
     <text class="val" x="547.5" y="218">84.2</text>
     <text class="lab" x="220" y="242" text-anchor="end">MiMo-V2.6-Flash</text>
-    <rect x="230" y="230" width="310.4" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="546.4" y="242">83.9</text>
+    <rect x="230" y="230" width="311.4" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="547.4" y="242">84.2</text>
     <text class="lab" x="220" y="266" text-anchor="end">Qwen3.8-27B, thinking</text>
     <rect x="230" y="254" width="309.3" height="15" rx="2" fill="var(--base)"/>
     <text class="val" x="545.3" y="266">83.6</text>
@@ -104,6 +104,11 @@ DeepSeek-V4.1-Flash and MiMo-V2.6-Pro and about a point behind GLM-5.3-Flash.
   </svg>
   <figcaption>Mean task success over the 14 doctor-bench benchmarks. Grey: frontier models (thinking off). Light: base models. Blue: the same base models with the global LoRA adapter. Thinking off unless the label says otherwise. ‡ Kimi K3 is also the teacher that wrote the training data.</figcaption>
 </figure>
+
+*Corrected on 8 November 2026:* a harness bug had counted some Linux-services answers as failures
+without checking them. They have been asked again with the same serving setup, which moved some
+frontier and base-model means by up to 0.3 points (MiMo-V2.6-Flash 83.9 → 84.2). The adapters'
+rows had no lost answers, and none of the comparisons here change.
 
 ## What was trained
 
@@ -150,7 +155,7 @@ B300s, under 5 hours for Nemotron on eight, and about four and a half for Kolibr
     <circle cx="254.0" cy="90" r="5" fill="var(--mut)"/>
     <circle cx="401.2" cy="90" r="5" fill="var(--acc)"/>
     <text class="ax" x="246.0" y="94" text-anchor="end">60.5</text>
-    <text class="val" x="410.2" y="94">78.9 (+18.4)</text>
+    <text class="val" x="410.2" y="94">78.9 (+18.3)</text>
   </svg>
   <figcaption>Thinking off, 14-benchmark mean: base model (grey) and with the global adapter (blue).</figcaption>
 </figure>

@@ -36,7 +36,7 @@ tests pass.
 The best models fix about 92% of the problems. A 4B model fixes half.
 
 <figure class="db">
-  <svg viewBox="0 0 640 296" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Kimi K3 91.7 percent; GLM-5.3 91.5 percent; GLM-5.3-Flash 90.9 percent; DeepSeek-V4.1-Flash 88.4 percent; MiMo-V2.6-Pro 88.3 percent; MiMo-V2.6-Flash 83.9 percent; Muse-Spark-Open 80.4 percent; Qwen3-4B (base) 51.3 percent.">
+  <svg viewBox="0 0 640 296" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Kimi K3 91.7 percent; GLM-5.3 91.6 percent; GLM-5.3-Flash 90.9 percent; DeepSeek-V4.1-Flash 88.6 percent; MiMo-V2.6-Pro 88.4 percent; MiMo-V2.6-Flash 84.2 percent; Muse-Spark-Open 80.4 percent; Qwen3-4B (base) 51.3 percent.">
     <line x1="170" x2="170" y1="22" y2="264" stroke="var(--grid)" stroke-width="1"/>
     <text class="ax" x="170" y="282" text-anchor="middle">0%</text>
     <line x1="270" x2="270" y1="22" y2="264" stroke="var(--grid)" stroke-width="1"/>
@@ -51,20 +51,20 @@ The best models fix about 92% of the problems. A 4B model fixes half.
     <rect x="170" y="30" width="366.7" height="18" rx="2" fill="var(--acc)"/>
     <text class="val" x="542.7" y="43">91.7</text>
     <text class="lab" x="160" y="73" text-anchor="end">GLM-5.3</text>
-    <rect x="170" y="60" width="366.1" height="18" rx="2" fill="var(--acc)"/>
-    <text class="val" x="542.1" y="73">91.5</text>
+    <rect x="170" y="60" width="366.4" height="18" rx="2" fill="var(--acc)"/>
+    <text class="val" x="542.4" y="73">91.6</text>
     <text class="lab" x="160" y="103" text-anchor="end">GLM-5.3-Flash</text>
     <rect x="170" y="90" width="363.7" height="18" rx="2" fill="var(--acc)"/>
     <text class="val" x="539.7" y="103">90.9</text>
     <text class="lab" x="160" y="133" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <rect x="170" y="120" width="353.8" height="18" rx="2" fill="var(--mut)"/>
-    <text class="val" x="529.8" y="133">88.4</text>
+    <rect x="170" y="120" width="354.4" height="18" rx="2" fill="var(--mut)"/>
+    <text class="val" x="530.4" y="133">88.6</text>
     <text class="lab" x="160" y="163" text-anchor="end">MiMo-V2.6-Pro</text>
-    <rect x="170" y="150" width="353.4" height="18" rx="2" fill="var(--mut)"/>
-    <text class="val" x="529.4" y="163">88.3</text>
+    <rect x="170" y="150" width="354.0" height="18" rx="2" fill="var(--mut)"/>
+    <text class="val" x="530.0" y="163">88.4</text>
     <text class="lab" x="160" y="193" text-anchor="end">MiMo-V2.6-Flash</text>
-    <rect x="170" y="180" width="335.4" height="18" rx="2" fill="var(--mut)"/>
-    <text class="val" x="511.4" y="193">83.9</text>
+    <rect x="170" y="180" width="336.5" height="18" rx="2" fill="var(--mut)"/>
+    <text class="val" x="512.5" y="193">84.2</text>
     <text class="lab" x="160" y="223" text-anchor="end">Muse-Spark-Open</text>
     <rect x="170" y="210" width="321.5" height="18" rx="2" fill="var(--mut)"/>
     <text class="val" x="497.5" y="223">80.4</text>
@@ -76,9 +76,14 @@ The best models fix about 92% of the problems. A 4B model fixes half.
 </figure>
 
 Kimi K3, GLM-5.3 and GLM-5.3-Flash are within a point of each other. The one
-that surprised me is GLM-5.3-Flash, which gives up only 0.6 points to its
+that surprised me is GLM-5.3-Flash, which gives up only 0.7 points to its
 bigger sibling. DeepSeek-V4.1-Flash and MiMo-V2.6-Pro tie a little further
 back. The newly released Muse-Spark-Open comes last of the seven, at 80.4.
+
+*Corrected on 8 November 2026:* a harness bug had counted some Linux-services answers as
+failures without checking them (the scorer crashed on files the fault had made unreadable). I fixed
+it and asked those answers again with the same serving setup. The table and chart now include them.
+MiMo-V2.6-Flash gained the most, 4.5 points on Linux and 0.3 on its mean. No model changed rank.
 
 ## Where they differ
 
@@ -88,11 +93,11 @@ that category's benchmarks):
 | model | build | linux | hpc | ml-systems | gromacs | slurm-admin | kubernetes |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Kimi K3 | 87.6 | 91.3 | 94.5 | 92.4 | 92.1 | 89.5 | 95.1 |
-| GLM-5.3 | 84.8 | 90.3 | 95.9 | 94.5 | 92.1 | 90.9 | 91.8 |
+| GLM-5.3 | 84.8 | 91.3 | 95.9 | 94.5 | 92.1 | 90.9 | 91.8 |
 | GLM-5.3-Flash | 85.2 | 90.7 | 93.1 | 92.2 | 90.5 | 91.6 | 92.8 |
-| DeepSeek-V4.1-Flash | 84.8 | 86.2 | 93.7 | 83.8 | 87.1 | 89.0 | 93.1 |
-| MiMo-V2.6-Pro | 81.7 | 86.8 | 92.0 | 90.0 | 86.7 | 90.1 | 89.5 |
-| MiMo-V2.6-Flash | 72.3 | 82.0 | 88.2 | 86.4 | 81.6 | 84.8 | 90.2 |
+| DeepSeek-V4.1-Flash | 84.8 | 87.8 | 93.7 | 83.8 | 87.1 | 89.0 | 93.1 |
+| MiMo-V2.6-Pro | 81.7 | 88.1 | 92.0 | 90.0 | 86.7 | 90.1 | 89.5 |
+| MiMo-V2.6-Flash | 72.3 | 86.5 | 88.2 | 86.4 | 81.6 | 84.8 | 90.2 |
 | Muse-Spark-Open | 76.8 | 91.0 | 89.1 | 71.0 | 87.6 | 71.6 | 85.3 |
 | Qwen3-4B (base) | 31.5 | 56.6 | 61.5 | 42.0 | 44.5 | 57.4 | 65.2 |
 
@@ -102,7 +107,7 @@ validated without a GPU, since the model being scored was using all eight.
 C/C++ builds are the hardest category for everyone. Nobody reaches 90 there.
 Kubernetes is the easiest.
 
-Muse is the odd one out. On the Linux services it is as good as anyone (91.0),
+Muse is the odd one out. On the Linux services it is as good as anyone (91.3),
 and it holds up on GROMACS. Then it falls to about 71 on ML systems and Slurm
 administration, and to 64.7 on the held-out Slurm set, where Kimi K3 gets 94.7.
 My first guess was truncation. Wrong: Muse ran out of tokens on 2 problems out
@@ -121,7 +126,7 @@ otherwise. On my first run it reasoned through the entire budget on 45% of the
 problems and averaged 53.3, about the same as the 4B model. Yet 99% of the
 answers it did finish were correct. A test prompt on GLM-5.3-Flash used 822
 reasoning tokens at the default and about 30 at `reasoning_effort: low`. Rerun
-at low effort, GLM-5.3 truncated 1.2% of its answers and scored 91.5.
+at low effort, GLM-5.3 truncated 1.2% of its answers and scored 91.6.
 
 Same model, 38 points apart, and all of it was the token budget.
 

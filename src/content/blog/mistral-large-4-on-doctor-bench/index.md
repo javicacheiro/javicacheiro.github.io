@@ -38,7 +38,7 @@ Under the standard rules it scores 88.6, tied with DeepSeek-V4.1-Flash and my Qw
 expert. That number undersells it, though, and most of this post is about why.
 
 <figure class="ml">
-  <svg viewBox="0 0 640 498" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Mistral Large 4, 16k tokens † 92.1; Kimi K3 ‡ 91.7; GLM-5.3 91.5; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking * 89.8; Qwen3.8-27B + LoRA 88.6; Mistral Large 4 88.6; DeepSeek-V4.1-Flash 88.4; Nemotron Super VL + LoRA 88.4; MiMo-V2.6-Pro 88.3; Nemotron Super VL, thinking * 84.2; MiMo-V2.6-Flash 83.8; Qwen3.8-27B, thinking * 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Kolibri-1 60.5; Qwen3-4B 51.3.">
+  <svg viewBox="0 0 640 498" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Mistral Large 4, 16k tokens † 92.1; Kimi K3 ‡ 91.7; GLM-5.3 91.6; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking * 89.8; Qwen3.8-27B + LoRA 88.6; Mistral Large 4 88.6; DeepSeek-V4.1-Flash 88.6; Nemotron Super VL + LoRA 88.4; MiMo-V2.6-Pro 88.4; Nemotron Super VL, thinking * 84.2; MiMo-V2.6-Flash 84.2; Qwen3.8-27B, thinking * 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Kolibri-1 60.5; Qwen3-4B 51.3.">
     <line x1="230" x2="230" y1="8" y2="464" stroke="var(--grid)" stroke-width="1"/>
     <text class="ax" x="230" y="482" text-anchor="middle">0%</text>
     <line x1="322" x2="322" y1="8" y2="464" stroke="var(--grid)" stroke-width="1"/>
@@ -56,8 +56,8 @@ expert. That number undersells it, though, and most of this post is about why.
     <rect x="230" y="38" width="339.2" height="15" rx="2" fill="var(--mut)"/>
     <text class="val" x="575.2" y="50">91.7</text>
     <text class="lab" x="220" y="74" text-anchor="end">GLM-5.3</text>
-    <rect x="230" y="62" width="338.6" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="574.6" y="74">91.5</text>
+    <rect x="230" y="62" width="338.9" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="574.9" y="74">91.6</text>
     <text class="lab" x="220" y="98" text-anchor="end">GLM-5.3-Flash</text>
     <rect x="230" y="86" width="336.4" height="15" rx="2" fill="var(--mut)"/>
     <text class="val" x="572.4" y="98">90.9</text>
@@ -71,20 +71,20 @@ expert. That number undersells it, though, and most of this post is about why.
     <rect x="230" y="158" width="327.8" height="15" rx="2" fill="var(--hl)"/>
     <text class="val" x="563.8" y="170">88.6</text>
     <text class="lab" x="220" y="194" text-anchor="end">DeepSeek-V4.1-Flash</text>
-    <rect x="230" y="182" width="327.2" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="563.2" y="194">88.4</text>
+    <rect x="230" y="182" width="327.8" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="563.8" y="194">88.6</text>
     <text class="lab" x="220" y="218" text-anchor="end">Nemotron Super VL + LoRA</text>
     <rect x="230" y="206" width="327.2" height="15" rx="2" fill="var(--acc)"/>
     <text class="val" x="563.2" y="218">88.4</text>
     <text class="lab" x="220" y="242" text-anchor="end">MiMo-V2.6-Pro</text>
-    <rect x="230" y="230" width="326.9" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="562.9" y="242">88.3</text>
+    <rect x="230" y="230" width="327.4" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="563.4" y="242">88.4</text>
     <text class="lab" x="220" y="266" text-anchor="end">Nemotron Super VL, thinking *</text>
     <rect x="230" y="254" width="311.7" height="15" rx="2" fill="var(--base)"/>
     <text class="val" x="547.7" y="266">84.2</text>
     <text class="lab" x="220" y="290" text-anchor="end">MiMo-V2.6-Flash</text>
-    <rect x="230" y="278" width="310.2" height="15" rx="2" fill="var(--mut)"/>
-    <text class="val" x="546.2" y="290">83.8</text>
+    <rect x="230" y="278" width="311.6" height="15" rx="2" fill="var(--mut)"/>
+    <text class="val" x="547.6" y="290">84.2</text>
     <text class="lab" x="220" y="314" text-anchor="end">Qwen3.8-27B, thinking *</text>
     <rect x="230" y="302" width="309.4" height="15" rx="2" fill="var(--base)"/>
     <text class="val" x="545.4" y="314">83.6</text>
@@ -120,7 +120,7 @@ answer.
 On 248 of the 4,722 problems it wasn't fine. The model was still reasoning when the budget ran
 out and never produced an answer. That's 5.3%, against 1.2% and 1.0% for the two GLMs and about
 0.2% or less for everyone else. And when it did answer, the answer passed 93.1% of the time, the
-best rate of any frontier model I've tested (GLM-5.3 is next at 92.0).
+best rate of any frontier model I've tested (GLM-5.3 is next at 92.1).
 
 So I ran the whole suite again with 16,384 tokens and nothing else changed. Truncations fell to
 56. Of the 248 problems that had run out of room, 155 now pass. The problems it had already
@@ -201,22 +201,26 @@ Mean task success per category (the mean of that category's benchmarks):
 | model | build | linux | hpc | ml-systems | gromacs | slurm-admin | kubernetes |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Kimi K3 ‡ | 87.6 | 91.3 | 94.5 | 92.4 | 92.1 | 89.5 | 95.1 |
-| GLM-5.3 | 84.8 | 90.3 | 95.9 | 94.5 | 92.1 | 90.9 | 91.8 |
+| GLM-5.3 | 84.8 | 91.3 | 95.9 | 94.5 | 92.1 | 90.9 | 91.8 |
 | GLM-5.3-Flash | 85.2 | 90.7 | 93.1 | 92.2 | 90.5 | 91.6 | 92.8 |
 | **Mistral Large 4, 16k †** | 86.2 | 91.6 | 96.9 | 94.1 | 91.2 | 90.5 | 94.8 |
 | **Mistral Large 4** | 80.8 | 91.0 | 95.7 | 88.6 | 88.1 | 86.2 | 92.2 |
-| DeepSeek-V4.1-Flash | 84.8 | 86.2 | 93.7 | 83.8 | 87.1 | 89.0 | 93.1 |
-| MiMo-V2.6-Pro | 81.7 | 86.8 | 92.0 | 90.0 | 86.7 | 90.1 | 89.5 |
-| MiMo-V2.6-Flash | 72.3 | 82.0 | 88.2 | 86.4 | 81.6 | 84.8 | 90.2 |
-| Muse-Spark-Open | 76.8 | 91.0 | 89.1 | 71.0 | 87.6 | 71.6 | 85.3 |
+| DeepSeek-V4.1-Flash | 84.8 | 87.8 | 93.7 | 83.8 | 87.1 | 89.0 | 93.1 |
+| MiMo-V2.6-Pro | 81.7 | 88.1 | 92.0 | 90.0 | 86.7 | 90.1 | 89.5 |
+| MiMo-V2.6-Flash | 72.3 | 86.5 | 88.2 | 86.4 | 81.6 | 84.8 | 90.2 |
+| Muse-Spark-Open | 76.8 | 91.3 | 89.1 | 71.0 | 87.6 | 71.6 | 85.3 |
 | Qwen3.8-27B + LoRA, thinking * | 83.9 | 94.9 | 96.6 | 88.7 | 82.9 | 90.3 | 93.3 |
 | Qwen3.8-27B + LoRA | 80.1 | 97.4 | 97.2 | 88.4 | 80.6 | 88.4 | 92.7 |
 | Nemotron Super VL + LoRA | 84.8 | 92.9 | 95.6 | 87.3 | 81.9 | 87.4 | 91.9 |
 
 The ml-systems column covers only the 269 of 530 problems that can be validated without a GPU.
 
+*Corrected on 8 November 2026:* a harness bug had counted some Linux-services answers as failures
+without checking them. Those answers have been asked again with the same serving setup, and the
+other models' rows include them. Mistral Large 4 had no lost answers, so its numbers are unchanged.
+
 Even at 4,096 tokens Mistral is second among the frontier models on HPC, a fifth of a point behind
-GLM-5.3, and ties Muse for second on Linux services. The 27B expert still beats it on both. That's the point of
+GLM-5.3, and on Linux services it is 0.3 behind the three models that share the top spot. The 27B expert still beats it on both. That's the point of
 training one, so I'm glad it holds. Where the expert can't keep up is GROMACS and C/C++
 builds, and that gap doesn't change with Mistral in the picture.
 
