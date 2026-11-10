@@ -37,7 +37,8 @@ fix only counts if the build and tests pass afterwards.
 
 Under the standard rules (thinking off, 4,096 output tokens) it scores 91.4, level with Kimi K3
 and GLM-5.3. With thinking at maximum effort it scores 93.4, the highest mean I've measured on
-doctor-bench.
+doctor-bench. At the end there are also some quick throughput numbers on 8×B300 and its scores
+on GPQA, AIME and IFBench.
 
 <figure class="ml">
   <svg viewBox="0 0 640 594" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Kimi K3.1 Pro, thinking max † 93.4; Mistral Large 4, high effort † 92.6; Kimi K3 ‡ 91.7; GLM-5.3 91.6; Kimi K3.1 Pro 91.4; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking * 89.8; DeepSeek-V4.1-Flash-1017 89.3; Qwen3.8-27B + LoRA 88.6; Mistral Large 4 88.6; DeepSeek-V4.1-Flash 88.6; MiMo-V2.6-Pro 88.4; Nemotron Super VL + LoRA 88.4; Nemotron Super VL, thinking * 84.2; MiMo-V2.6-Flash 84.2; Qwen3.8-27B, thinking * 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Qwen3-4B + 7 domain LoRAs 68.6; Kolibri-1 60.5; Qwen3-4B 51.3.">
@@ -133,8 +134,9 @@ K3's.
 How much of that is just noise? I ran K3.1 a second time with the same settings. The mean came
 out at 92.1 instead of 91.4, and 156 problems flipped, 93 up and 63 down. That's a bigger shift
 than Mistral's repeat run (0.15), and probably not all of it is noise. Between the two runs the
-endpoint was restarted several times after hangs, and the instance that served the repeat had
-one kernel fusion (all-reduce + RMSNorm) turned off. The weights are the same, but the
+endpoint was restarted several times after hangs, and the instance that served the repeat used
+a different all-reduce path (plain NCCL instead of the recipe's custom kernels) and had one
+kernel fusion (all-reduce + RMSNorm) turned off. The weights are the same, but the
 arithmetic isn't bit-for-bit identical. So the honest summary is a
 range: 91.4 and 92.1 on two runs, with Kimi K3's 91.7 in between. The two Kimis are a tie.
 
@@ -256,18 +258,71 @@ model, but it's the same family, probably trained on similar data and with a sim
 writing a fix. If doctor-bench has a blind spot that suits Kimi's style, K3.1 benefits from it
 too.
 
-The held-out Slurm set is where that matters most. Kimi K3 had solved every problem in it when
-the benchmark was frozen, and K3.1 at max effort passes 98.3%. Without thinking, it's at 94.3
-and 94.7, the same as K3 (94.7), and Mistral at 4,096 tokens is at 92.3. So treat the Kimi rows
+The held-out Slurm set is where that matters most. Every problem in it was kept because Kimi K3
+solved it while the benchmark was being built. Re-run under the benchmark's rules, with one
+greedy attempt each, K3 scores 94.7. K3.1 at max effort passes 98.3%. Without thinking, it's at
+94.3 and 94.7, the same as K3, and Mistral at 4,096 tokens is at 92.3. So treat the Kimi rows
 with some caution. I think the numbers are real, but they're the ones I'd discount first.
+
+## Throughput and standard benchmarks
+
+I also took some quick numbers outside doctor-bench, with the whole node to myself: one pass,
+no repeats, only the main workloads and benchmarks. The server was the relaunched one (plain
+NCCL, fusion off).
+
+**Throughput.** These are the synthetic workloads from my
+[throughput post](/blog/throughput-benchmarking-on-b300), sent with GuideLLM exactly as for
+Kimi K3. The client was on another node, so time to first token includes about 0.1 s of network.
+
+| workload (in → out) | Kimi K3.1 Pro, peak tok/s | at concurrency | Kimi K3 | change |
+|---|---:|---:|---:|---:|
+| API-S (2k → 256) | 1,914 | 256 | 1,651 | +16% |
+| CHAT-S (2k → 512) | 2,617 | 512 | 2,880 | −9% |
+| CODE-I (16k → 2k) | 1,246 | 64 | 1,390 | −10% |
+| CODE-A (64k → 4k) | 586 | 64 | 691 | −15% |
+| BATCH-D (4k → 8k) | 2,252 | 256 | 4,422 | −49% |
+| single stream (CHAT-S) | 85 | 1 | 102 | −17% |
+
+Short requests come close to Kimi K3. The coding workloads stop gaining at about 64 concurrent
+requests, and chat and API at 256–512. Batch generation reaches only half of K3, and that's
+mostly the server rather than the model. After the weights there's room for 1.95M tokens of KV
+cache, which holds only about 160 BATCH-D requests at once, and the model's state cache caps the
+server at 512 sequences, where K3 peaked at 1,024. The NCCL-only all-reduce probably costs some
+decode speed too, but I didn't measure that separately. One more caveat: K3's peaks are vLLM's
+server-side rate and K3.1's come from the client. Where both exist for K3, they agree within
+about 8%.
+
+**Standard benchmarks.** These use the harness, prompts and settings from my
+[Kolibri-1 post](/blog/kolibri-1-benchmarks), with `reasoning_effort: max`, temperature 1.0 and
+top-p 0.95, which are also the model card's settings.
+
+| model | GPQA Diamond | AIME 2025 | AIME 2026 | IFBench loose / strict | GPQA tokens per answer |
+|---|---:|---:|---:|---:|---:|
+| **Kimi K3.1 Pro** | **93.4** | **99.8** | **100.0** | 77.2 / 69.3 | 5,192 |
+| Kimi K3 | 92.6 | 93.8 | 95.2 | 76.5 / 72.1 | 4,948 |
+| DeepSeek-V4.1-Flash | 89.1 | 98.8 | 98.8 | 79.7 / 75.0 | 10,088 |
+| Qwen3.8-27B | 89.3 | 97.7 | 95.6 | **81.7** / 74.4 | 11,925 |
+| Mistral Large 4, high | 86.6 | 99.0 | 99.0 | 76.7 / 73.1 | 13,874 |
+| Kolibri-1 | 82.6 | 95.6 | 95.2 | 78.8 / 70.3 | 15,954 |
+
+GPQA reproduces the model card's 94.2 (our 95% interval is 90.0–96.2), and it's the best score
+I've measured with this harness. But it's only 0.8 above K3, so it's within noise. What stands
+out is how few tokens both Kimis use: about 5k per answer, against 10–16k for the rest. AIME is
+essentially perfect, about five points above K3. AIME 2026 was published before K3.1 came out,
+though, so I'd treat those scores as a ceiling rather than something that separates the models.
+IFBench shows no gain: loose is level with K3, strict is 2.8 points lower, and both trail
+Qwen3.8-27B and DeepSeek-V4.1-Flash.
 
 ## How it was run
 
 Kimi K3.1 Pro ran from the official checkpoint on a long-running vLLM endpoint across a whole
 8×B300 node: tensor parallelism 8, the `vllm/vllm-openai:kimi-k31` image and the `kimi_k3`
-reasoning parser. The endpoint was shared with another benchmark the whole time, and it ran with
-`--disable-custom-all-reduce` throughout. It hung a few times under load, so for the repeat and
-the thinking run it had been restarted with the all-reduce + RMSNorm fusion turned off as well.
+reasoning parser. The endpoint was shared with another benchmark the whole time. The first run
+used the vLLM recipe as published. The next day the endpoint hung five times under load: one
+GPU stalled while the other seven spun at 100%. So it was relaunched with every custom
+all-reduce path turned off (plain NCCL only) and the all-reduce + RMSNorm fusion off. It then
+ran for about 28 hours under shared load without a hang. The repeat and the thinking run both
+used that relaunched server.
 
 Thinking is switched on and off through the chat template (`thinking: true` or `false`), and
 the effort goes in `reasoning_effort`. A probe with thinking off produced 0 reasoning tokens. On
