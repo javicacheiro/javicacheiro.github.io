@@ -2,6 +2,7 @@
 title: 'Kimi K3.1 Pro on doctor-bench'
 description: 'Kimi K3.1 Pro ties its predecessor Kimi K3 under the standard rules, at 91.4. With thinking at maximum effort it scores 93.4, the best I have measured.'
 publishDate: 2026-11-08
+updatedDate: 2026-11-13
 tags:
   - ai
   - llm
@@ -291,6 +292,49 @@ server at 512 sequences, where K3 peaked at 1,024. The NCCL-only all-reduce prob
 decode speed too, but I didn't measure that separately. One more caveat: K3's peaks are vLLM's
 server-side rate and K3.1's come from the client. Where both exist for K3, they agree within
 about 8%.
+
+**Against the other doctor-bench models.** Later I ran the same node through every model in
+the doctor-bench frontier table, plus DeepSeek-V4.1-Flash-1017, one model at a time. Each one
+was served with the vLLM settings it was scored with, including its speculative decoding (MTP
+for GLM, DSpark for DeepSeek, DFlash for MiMo; Kimi K3.1 ran without). Mistral Large 4 ran on
+half the node (TP4), as it was served for doctor-bench, so a full node holds two copies. The
+rate here is vLLM's server-side output rate, measured after warm-up, which is why Kimi's numbers
+come out a little lower than in the table above.
+
+| model | one user, tok/s | chat peak (CHAT-S) | long prompts peak (CODE-I) | users at ≥ 50 tok/s |
+|---|---:|---:|---:|---:|
+| MiMo-V2.6-Flash | 461 | 13,654 at 512 | 9,148 at 256 | ~100 |
+| MiMo-V2.6-Pro | 333 | 8,273 at 512 | 3,810 at 64 | 64 |
+| Muse-Spark-Open | 179 | 6,934 at 512 | 2,497 at 64 | ~32 |
+| GLM-5.3-Flash | 264 | 6,442 at 512 | 2,820 at 64 | 64 |
+| DeepSeek-V4.1-Flash-1017 | 324 | 5,983 at 256 | 5,275 at 256 | 64 |
+| GLM-5.3 | 204 | 3,439 at 256 | 1,814 at 64 | 16–32 |
+| **Kimi K3.1 Pro** | **73** | **2,343 at 256** | **1,405 at 64** | **4** |
+| Mistral Large 4, half node | 106 | 2,276 at 256 | 677 at 16 * | 16 |
+
+\* Higher concurrencies are still being re-measured. The "one user" column is chat (2k → 512)
+at concurrency 1. "Users at ≥ 50 tok/s" is how many concurrent chat requests still each get
+50 tok/s with time to first token under about half a second.
+
+Kimi K3.1 Pro is the slowest model here for a single user, and it serves the fewest users at a
+comfortable speed: about 4, against 64 or more for the small-active-parameter models. Those
+models (MiMo, DeepSeek-Flash, GLM-5.3-Flash) are 3–6 times faster per user and 2.5–6 times higher
+in total, so on this node there's no trade-off between interactive speed and throughput. They
+win on both. Kimi is also bound by its KV cache: about 190 chat requests or 75 long-prompt
+requests fit at once. Beyond that, requests queue for minutes, so it's best run at 64–256
+concurrent requests. Most of the small models are still gaining at 512. Kimi's steady batch
+(BATCH-D) rate is 2,040 tok/s at 64 and 2,341 at 256. Speculative decoding also depends on the
+text, so these synthetic prompts may flatter or understate the models that use it.
+
+One thing I learned about the method: a short adaptive window isn't enough. I first stopped
+each test once the running average settled within 2% over 30 s, and in about half the tests
+the rate was still falling when it stopped. Requests that start together decode fast at first.
+Then prefills start mixing in, long outputs make attention more expensive as the context grows,
+and fixed-length requests move in waves. The rate is steady after about two request durations,
+and needs about two more to measure. For chat that's under two minutes. For 8k-token outputs
+at high concurrency it's 10–45 minutes per test. So I've only reported the steady values above.
+The batch tests that never reached steady state are being re-run now, and I'll add them when
+they finish.
 
 **Standard benchmarks.** These use the harness, prompts and settings from my
 [Kolibri-1 post](/blog/kolibri-1-benchmarks), with `reasoning_effort: max`, temperature 1.0 and
