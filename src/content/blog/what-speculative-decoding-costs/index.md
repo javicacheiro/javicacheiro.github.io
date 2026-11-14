@@ -1,5 +1,5 @@
 ---
-title: 'What speculative decoding actually costs'
+title: 'Testing speculative decoding'
 description: 'Speculation off versus on for five mechanisms on 8×H200 — and why it loses money under load.'
 publishDate: 2026-09-30
 tags:
@@ -34,11 +34,11 @@ EAGLE, MTP, NEXTN, DSpark, DFlash — and every published serving recipe turns i
 on. It is presented as free throughput: draft a few tokens cheaply, verify them
 in one pass, emit whatever the model would have emitted anyway.
 
-It is not free. On a loaded server it is a **net loss** for every mechanism I
+But in this post I will show that it is not free. On a loaded server it is a **net loss** for every mechanism I
 measured, and switching it off is worth 5–36%.
 
 This post is the A/B test behind that claim, on [the same 8×H200 node and the
-same workload shapes](/blog/llm-benchmarking-on-h200/) as the model comparison.
+same workload shapes](/blog/llm-benchmarking-on-h200/) as I used previously for the model comparison.
 
 ## The measurement
 
@@ -65,7 +65,7 @@ config still carrying speculation machinery.
 Throughput is the aggregate output rate — all output tokens over the measured
 window, not GuideLLM's per-request mean.
 
-### Acceptance statistics come free
+### Acceptance statistics
 
 Both engines already log acceptance on every reporting interval, and the
 benchmark harness brackets each workload with a UTC timestamp, so every sample
@@ -83,7 +83,7 @@ SGLang  Decode batch, #running-req: 22, token usage: 0.99,
         accept len: 3.02, accept rate: 0.41, gen throughput (token/s): 1415.06
 ```
 
-## The result
+## Results
 
 <figure class="qz">
   <svg viewBox="0 0 640 354" role="img" aria-label="Throughput change from enabling speculative decoding, for six model and mechanism pairs, in three regimes. DeepSeek-V4.1-Flash vLLM DSpark-5: 1 stream, CHAT-S +110 percent, 64 streams, CHAT-S -16 percent, 64 streams, BATCH-D +43 percent; GLM-5.3 SGLang EAGLE-5: 1 stream, CHAT-S +84 percent, 64 streams, CHAT-S -26 percent, 64 streams, BATCH-D +29 percent; GLM-5.3 vLLM MTP-5: 1 stream, CHAT-S +65 percent, 64 streams, CHAT-S -5 percent, 64 streams, BATCH-D +30 percent; GLM-5.3-Flash SGLang EAGLE-5: 1 stream, CHAT-S +55 percent, 64 streams, CHAT-S -30 percent, 64 streams, BATCH-D +1 percent; GLM-5.3-Flash vLLM MTP-5: 1 stream, CHAT-S +13 percent, 64 streams, CHAT-S -33 percent, 64 streams, BATCH-D +15 percent; Qwen3.8-Flash-Next FP8 SGLang NEXTN-3: 1 stream, CHAT-S +35 percent, 64 streams, CHAT-S -36 percent, 64 streams, BATCH-D +2 percent.">
@@ -242,7 +242,7 @@ compute that would otherwise be serving real requests. A mechanism that
 accepts 2.7 tokens per step but costs more than 2.7 tokens' worth of extra
 compute is a loss, and that is what the middle bars are showing.
 
-### Hold concurrency fixed and acceptance matters again
+### Holding concurrency fixed
 
 Once concurrency is not the variable, acceptance is exactly what separates the
 workloads. BATCH-D generates 8,192 tokens per request against CHAT-S's 512, and
@@ -298,10 +298,10 @@ So the answer to *"is it acceptance or is it the longer decode phase?"* is
 **both, on different axes**. Across concurrency it is saturation and acceptance
 plays no part. Across workload at fixed concurrency it is acceptance.
 
-## Where the draft length ceiling comes from
+## The draft length ceiling
 
-Every one of these recipes drafts 4–7 tokens. The per-position acceptance rates
-show why nobody drafts 20.
+Every recipe drafts 4–7 tokens, the per-position acceptance rates
+explain why no recipe drafts 20.
 
 <figure class="qz">
   <svg viewBox="0 0 640 320" role="img" aria-label="Acceptance rate by draft position on BATCH-D at 64 concurrent requests.">
@@ -343,7 +343,7 @@ show why nobody drafts 20.
   </svg>
   <figcaption>
     Probability that the draft token at each position is accepted, on BATCH-D at
-    64 concurrent requests. vLLM reports this directly; SGLang does not.
+    64 concurrent requests.
   </figcaption>
 </figure>
 
@@ -356,7 +356,9 @@ It also explains the ordering in the first chart. DSpark's decay is the
 shallowest of the three, which is why DeepSeek-V4.1-Flash gets the biggest
 single-stream gain in the set.
 
-## What to actually do
+## Conclusions
+
+These are my conclusions from the tests I have done:
 
 - **Serving one request at a time** — interactive coding, a local assistant, a
   latency-sensitive endpoint with light traffic: leave speculation on. It is the
