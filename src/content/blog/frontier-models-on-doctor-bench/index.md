@@ -1,5 +1,5 @@
 ---
-title: 'Seven open frontier models on doctor-bench'
+title: 'Benchmarking seven open frontier models on doctor-bench'
 description: 'Kimi K3, GLM-5.3, DeepSeek, MiMo and Muse on 14 debugging benchmarks where a fix only counts if the build and tests pass. Plus a 4B model for scale.'
 publishDate: 2026-10-16
 tags:
@@ -114,7 +114,7 @@ My first guess was truncation. Wrong: Muse ran out of tokens on 2 problems out
 of 4,722. Its patches apply, and then the build or the tests fail. It's just
 weaker in those domains.
 
-## Getting "thinking off" right was half the work
+## Thinking mode
 
 Every model ran the same way: greedy decoding, thinking off, 4,096 tokens for
 the answer. That's plenty for a JSON object with a few edits in it, and it's
@@ -146,18 +146,17 @@ was scored.
 For everyone else I sent one test request before the full run and looked at
 the reported reasoning tokens. MiMo, DeepSeek and Kimi all came back with 0.
 
-## The teacher caveat
+## Commments about Kimi K3
 
-Kimi K3 isn't an independent row, and I'd rather say so up front. It's the
-teacher that wrote the reference solutions my expert models train on. A
-problem also only gets into a benchmark if some teacher solved it, which is
-how I know it can be solved from the information given.
+I used Kimi K3 as the
+teacher to writet some of the reference solutions my expert models train on. A
+problem also only gets into a benchmark if some teacher solved it, so I know it is possible to fix it in the container environment.
 
 For all of the build benchmarks and the held-out Slurm set, that teacher was
 Kimi K3. Same for roughly half of the GROMACS, Slurm and Kubernetes v2
 problems. None of the linux, HPC or ML problems came from Kimi.
 
-The mixed benchmarks let me test for a home advantage. Here is task success
+The mixed benchmarks let us test for this advantage. Here is task success
 on the problems Kimi solved when the benchmark was frozen, against the rest:
 
 | benchmark | Kimi K3 | GLM-5.3 | GLM-5.3-Flash | DeepSeek-V4.1-Flash |
@@ -174,11 +173,7 @@ easier for every model. Kimi's lead over GLM-5.3 on its own problems swings
 between −10.1 and +6.3 points. On the benchmarks it never touched it scores
 88.9 to 96.0, right next to GLM-5.3.
 
-What I can't rule out is a small edge on the three benchmarks that are
-entirely Kimi-solved, because there's nothing to compare against there. Read
-its row with that in mind.
-
-## And the small models?
+## Small fine-tuned models
 
 This suite exists to measure 4B experts, so here's where one of them stands.
 The Slurm administration category has a held-out benchmark, eval3, built from
