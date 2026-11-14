@@ -1,6 +1,6 @@
 ---
-title: 'Mistral Large 4 on doctor-bench'
-description: 'Mistral Large 4 scores 88.6 on doctor-bench under the standard 4,096-token budget, and 92.1 with 16,384. Where it lands among the open models I have tested.'
+title: 'Benchmarking Mistral Large 4 on doctor-bench'
+description: 'Mistral Large 4 scores 88.6 on doctor-bench under the standard 4,096-token budget, and 92.1 with 16,384.'
 publishDate: 2026-10-31
 tags:
   - ai
@@ -28,14 +28,14 @@ tags:
 .ml .ax  { font-size: 11px; fill: var(--dim); }
 </style>
 
-Mistral Large 4 came out a month ago: a trillion parameters, 49 billion active, open weights.
+Mistral Large 4 came out a month ago with a trillion parameters, 49 billion active, and the open weights have just being released.
 I ran it through [doctor-bench](/blog/introducing-doctor-bench) the same way as the
 [seven frontier models](/blog/frontier-models-on-doctor-bench) and the
-[LoRA experts](/blog/lora-experts-vs-frontier-models) before it. A fix only counts if the build
-and tests pass afterwards.
+[LoRA experts](/blog/lora-experts-vs-frontier-models) before it.
+In this benchmark, a fix only counts if the build and tests pass afterwards.
 
 Under the standard rules it scores 88.6, tied with DeepSeek-V4.1-Flash and my Qwen3.8-27B
-expert. That number undersells it, though, and most of this post is about why.
+expert. That number does not show is real performance though, and in this post I will discuss why.
 
 <figure class="ml">
   <svg viewBox="0 0 640 498" role="img" aria-label="Mean task success over 14 doctor-bench benchmarks: Mistral Large 4, 16k tokens † 92.1; Kimi K3 ‡ 91.7; GLM-5.3 91.6; GLM-5.3-Flash 90.9; Qwen3.8-27B + LoRA, thinking * 89.8; Qwen3.8-27B + LoRA 88.6; Mistral Large 4 88.6; DeepSeek-V4.1-Flash 88.6; Nemotron Super VL + LoRA 88.4; MiMo-V2.6-Pro 88.4; Nemotron Super VL, thinking * 84.2; MiMo-V2.6-Flash 84.2; Qwen3.8-27B, thinking * 83.6; Qwen3.8-27B 82.0; Muse-Spark-Open 80.4; Kolibri-1 + LoRA 78.9; Nemotron Super VL 78.7; Kolibri-1 60.5; Qwen3-4B 51.3.">
@@ -186,13 +186,14 @@ points, ML systems 5.5, Slurm administration 4.3. Linux services and HPC hardly 
 Is 92.1 a fair comparison? Mostly. Kimi K3 never truncated, so a bigger budget wouldn't change
 its score. GLM-5.3 and GLM-5.3-Flash truncated 58 and 46 answers; if every one of those became a
 pass they'd gain 1.3 and 1.0 points, and in practice less. My best guess is that with a generous budget the top four are
-within about a point of each other, and Mistral is one of them. The leaderboard row stays at 88.6,
-because changing the rules for one model is how leaderboards stop meaning anything.
+within about a point of each other.
 
-I've been here before. GLM-5.3 at its default maximum effort scored 53.3 on its first run,
-because it reasoned through the whole budget on 45% of the problems. The lesson is the same: a
-score full of truncated answers is measuring the budget, not the model. Mistral's case is milder
-and it doesn't go away by picking a lower effort, because low is already the floor.
+This is a similar situation to the one I encountered when running GLM-5.3 at its default maximum effort and scored 53.3 on its first run,
+because it reasoned through the whole budget on 45% of the problems. The lesson is the same as in that case, a
+score full of truncated answers is really limited by the budget, not the model capability. Mistral's case is milder
+and it doesn't go away by disabling thinking because it has no such opiton and low thinking effort is already the floor.
+
+In any case, it is worth mentioning that Mistral requires much more tokens than the other models to reach similar performance.
 
 ## Category by category
 
@@ -215,24 +216,20 @@ Mean task success per category (the mean of that category's benchmarks):
 
 The ml-systems column covers only the 269 of 530 problems that can be validated without a GPU.
 
-*Corrected on 8 November 2026:* a harness bug had counted some Linux-services answers as failures
-without checking them. Those answers have been asked again with the same serving setup, and the
-other models' rows include them. Mistral Large 4 had no lost answers, so its numbers are unchanged.
-
 Even at 4,096 tokens Mistral is second among the frontier models on HPC, a fifth of a point behind
 GLM-5.3, and on Linux services it is 0.3 behind the three models that share the top spot. The 27B expert still beats it on both. That's the point of
 training one, so I'm glad it holds. Where the expert can't keep up is GROMACS and C/C++
 builds, and that gap doesn't change with Mistral in the picture.
 
-One number I like: on the held-out Slurm set, the four policy-heavy clusters that no expert was
+One number where Mistral excels is on the held-out Slurm set, the four policy-heavy clusters that no expert was
 trained on, Mistral scores 92.3 at 4,096 tokens and 95.7 at 16,384. The best before was Kimi K3
-at 94.7, on a benchmark where Kimi had solved every problem when it was frozen.
+at 94.7.
 
 That's the other thing worth saying about Mistral's row. It played no part in building
 doctor-bench. Kimi K3 picked and solved part of the problems and wrote the training data for my
-experts, so its row carries an asterisk. Mistral's doesn't.
+experts, so its row carries an asterisk.
 
-## Update, 1 November: more effort, and a repeat run
+## Update, 1 November: some additional tests about thinking effort
 
 I left Mistral running overnight with three more configurations. All of them are side runs; the
 leaderboard row is still 88.6.
@@ -252,13 +249,19 @@ slightly worse with more reasoning, not better. Keep in mind this is thinking mo
 tokens, so it belongs next to the other thinking rows (the best of those is my Qwen3.8 expert at
 89.8), not next to Kimi K3's 91.7 with reasoning off.
 
-The repeat run was the most useful one. Same endpoint, same settings, greedy decoding, and the
+The repeat run was the most useful one. Same same settings, greedy decoding, and the
 mean moved by only 0.15. But 329 of the 4,722 problems flipped between pass and fail, 168 one way
-and 161 the other, and single benchmarks moved by up to 3.3 points. My guess is the shared
-endpoint: other users' requests change how the server batches mine, and it also runs speculative
-decoding. "Greedy" doesn't mean "repeatable" there. So read every single-run number on this blog,
-including the frontier rows, as good to roughly ±0.2 on the mean and ±3 on any one benchmark.
-Gaps of a few tenths between models are noise.
+and 161 the other, and single benchmarks moved by up to 3.3 points. My guess is in the shared
+endpoint other users' requests change how the server batches mine, and it also runs speculative
+decoding. This way even if using geedy decoding it is not really repeatable there.
+So every single-run number on this blog,
+including the frontier rows, with a confindence interval of roughly ±0.2 on the mean and ±3 on any one benchmark.
+So gaps of a few tenths between models are noise.
+
+## Update, 8 November: harness bug corrected
+I have encountered that a harness bug had counted some Linux-services answers as failures
+without checking them. Those answers have been asked again with the same serving setup, and the
+other models' rows include them. Mistral Large 4 had no lost answers, so its numbers are unchanged.
 
 ## How it was run
 
@@ -272,11 +275,6 @@ one. I haven't checked that myself, and Muse-Spark-Open also ran in NVFP4.
 The settings were the same as for everyone else: greedy decoding, one attempt, the answer forced
 to the JSON schema, and the edits applied and checked by the real build and tests in a Docker
 container with no network.
-
-One snag: in Mistral's tokenizer mode, vLLM rejects any request that carries
-`chat_template_kwargs`, with an HTTP 400. My harness always sent a thinking switch that way, so
-it needed a flag to leave it out. The JSON schema itself works fine alongside the reasoning
-parser, which wasn't true for Muse.
 
 | run | budget | reasoning | truncated | mean |
 |---|---:|---|---:|---:|
