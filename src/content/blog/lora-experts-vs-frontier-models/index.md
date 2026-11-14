@@ -1,7 +1,7 @@
 ---
-title: 'A 27B model with one LoRA vs the frontier on doctor-bench'
+title: 'Experimenting with fine-tuning on doctor-bench'
 description: 'One LoRA adapter on all seven doctor-bench domains takes Qwen3.8-27B to 89.8, past DeepSeek-V4.1-Flash. Nemotron and Kolibri-1 for comparison.'
-publishDate: 2026-10-31
+publishDate: 2026-10-28
 tags:
   - ai
   - llm
@@ -30,8 +30,7 @@ tags:
 In the [first round of results](/blog/frontier-models-on-doctor-bench) the open frontier models
 scored 80–92% on [doctor-bench](/blog/introducing-doctor-bench), the suite where a model fixes a
 broken setup and only the real build and tests decide whether it worked. The question I actually
-care about is a different one: how close can a model you can run on one or two GPUs get, if you
-teach it the job?
+care about is a different one: how close can a model you can run on one or two GPUs get after fine-tuning.
 
 So I trained one LoRA adapter on all seven domains at once and put it on three open models:
 Qwen3.8-27B, NVIDIA's Nemotron-3.5 Super VL (120B total, 12B active) and Aleph Alpha's Kolibri-1
@@ -122,7 +121,7 @@ One epoch, answers only (no reasoning traces), one random seed. LoRA rank 8 for 
 Kolibri-1, rank 32 from NVIDIA's own recipe for Nemotron. Training took 14 hours for Qwen3.8 on four
 B300s, under 5 hours for Nemotron on eight, and about four and a half for Kolibri-1 on two.
 
-## Every base model improves
+## Results
 
 <figure class="lx">
   <svg viewBox="0 0 640 148" role="img" aria-label="Thinking off, base to LoRA global expert: Qwen3.8-27B 82.0 to 88.6; Nemotron Super VL 78.7 to 88.4; Kolibri-1 60.5 to 78.9.">
@@ -180,7 +179,7 @@ Nemotron's comes close. GROMACS is where the gap stays widest: 9 to 11 points fo
 Nemotron. It is also the domain where the 16k-token limit dropped the most training examples for
 those two models (131 and 143), which hardly helps.
 
-## Thinking mode: sometimes kept, sometimes broken
+## Thinking mode
 
 All three adapters were trained on plain answers. What happens when you then switch thinking on
 differs a lot between models.
