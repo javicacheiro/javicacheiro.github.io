@@ -301,24 +301,25 @@ half the node (TP4), as it was served for doctor-bench, so a full node holds two
 rate here is vLLM's server-side output rate, measured after warm-up, which is why Kimi's numbers
 come out a little lower than in the table above.
 
-| model | one user, tok/s | chat peak (CHAT-S) | long prompts peak (CODE-I) | users at ≥ 50 tok/s |
-|---|---:|---:|---:|---:|
-| MiMo-V2.6-Flash | 461 | 13,654 at 512 | 9,148 at 256 | ~100 |
-| MiMo-V2.6-Pro | 333 | 8,273 at 512 | 3,810 at 64 | 64 |
-| Muse-Spark-Open | 179 | 6,934 at 512 | 2,497 at 64 | ~32 |
-| GLM-5.3-Flash | 264 | 6,442 at 512 | 2,820 at 64 | 64 |
-| DeepSeek-V4.1-Flash-1017 | 324 | 5,983 at 256 | 5,275 at 256 | 64 |
-| GLM-5.3 | 204 | 3,439 at 256 | 1,814 at 64 | 16–32 |
-| **Kimi K3.1 Pro** | **73** | **2,343 at 256** | **1,405 at 64** | **4** |
-| Mistral Large 4, half node | 106 | 2,276 at 256 | 677 at 16 * | 16 |
+| model | one user, tok/s | chat peak | long prompts peak | long outputs peak | users at ≥ 50 tok/s |
+|---|---:|---:|---:|---:|---:|
+| MiMo-V2.6-Flash | 461 | 13,654 at 512 | 9,148 at 256 | 17,427 at 512 | ~100 |
+| MiMo-V2.6-Pro | 333 | 8,273 at 512 | 4,633 at 256 | 14,611 at 512 | 64 |
+| DeepSeek-V4.1-Flash-1017 | 324 | 5,983 at 256 | 5,275 at 256 | 11,077 at 256 | 64 |
+| GLM-5.3-Flash | 264 | 6,442 at 512 | 3,359 at 256 | 9,625 at 512 | 64 |
+| Muse-Spark-Open | 179 | 6,934 at 512 | 3,926 at 256 * | 6,843 at 512 | ~32 |
+| GLM-5.3 | 204 | 4,390 at 512 | 1,814 at 64 | 4,832 at 512 | 16–32 |
+| Mistral Large 4, half node | 106 | 2,276 at 256 | 1,220 at 64 | 3,794 at 256 | 16 |
+| **Kimi K3.1 Pro** | **73** | **2,343 at 256** | **1,405 at 64** | **2,341 at 256** | **4** |
 
-\* Higher concurrencies are still being re-measured. The "one user" column is chat (2k → 512)
-at concurrency 1. "Users at ≥ 50 tok/s" is how many concurrent chat requests still each get
-50 tok/s with time to first token under about half a second.
+Chat is 2k → 512 tokens (CHAT-S), long prompts are 16k → 2k (CODE-I), and long outputs are 4k → 8k (BATCH-D).
+"One user" is chat at concurrency 1. "Users at ≥ 50 tok/s" is how many concurrent chat requests still each get 50
+tok/s with time to first token under about half a second. \* Muse's long-prompt rate was still falling at the end of
+its window, so treat it as an upper bound.
 
 Kimi K3.1 Pro is the slowest model here for a single user, and it serves the fewest users at a
 comfortable speed: about 4, against 64 or more for the small-active-parameter models. Those
-models (MiMo, DeepSeek-Flash, GLM-5.3-Flash) are 3–6 times faster per user and 2.5–6 times higher
+models (MiMo, DeepSeek-Flash, GLM-5.3-Flash) are 3–6 times faster per user and 2.5–7 times higher
 in total, so on this node there's no trade-off between interactive speed and throughput. They
 win on both. Kimi is also bound by its KV cache: about 190 chat requests or 75 long-prompt
 requests fit at once. Beyond that, requests queue for minutes, so it's best run at 64–256
@@ -332,9 +333,18 @@ the rate was still falling when it stopped. Requests that start together decode 
 Then prefills start mixing in, long outputs make attention more expensive as the context grows,
 and fixed-length requests move in waves. The rate is steady after about two request durations,
 and needs about two more to measure. For chat that's under two minutes. For 8k-token outputs
-at high concurrency it's 10–45 minutes per test. So I've only reported the steady values above.
-The batch tests that never reached steady state are being re-run now, and I'll add them when
-they finish.
+at high concurrency it's 10–45 minutes per test. So the tests that hadn't reached a steady
+rate were run again with long fixed windows, and the table above shows only steady values.
+
+Two more things came out of that final pass. Raising DeepSeek's limit from 128 to 512
+concurrent sequences doesn't raise its ceiling: chat at 512 goes from 6.0k to 8.5k tok/s, but
+long outputs with 256 running requests drop to about half. My guess is that its speculative
+decoding pushes large batches past the biggest CUDA graph, though I didn't verify that. And
+partway through, an automatic package upgrade restarted the GPU fabric manager on the node,
+which broke NVLS. The other models fall back to plain NCCL, and a repeat of one chat test per
+model came out within ±10% of the earlier run, so the comparison holds. Kimi K3.1 Pro doesn't
+fall back. One of its fused MoE kernels requires NVLS, so it won't start again until the
+fabric manager is restarted, and its speculative-decoding test will have to wait until then.
 
 **Standard benchmarks.** These use the harness, prompts and settings from my
 [Kolibri-1 post](/blog/kolibri-1-benchmarks), with `reasoning_effort: max`, temperature 1.0 and
