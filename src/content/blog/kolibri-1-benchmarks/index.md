@@ -1,5 +1,5 @@
 ---
-title: 'Does Kolibri-1 live up to its benchmarks?'
+title: 'Benchmarking Kolibri-1'
 description: "Re-running Aleph Alpha's Kolibri-1 claims on H200, with Qwen3.6, Qwen3.8, DeepSeek-V4.1-Flash and Kimi-K3 through the same harness."
 publishDate: 2026-10-08
 tags:
