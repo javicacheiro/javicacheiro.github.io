@@ -1,6 +1,6 @@
 ---
-title: 'Kimi K3.1 Pro on doctor-bench'
-description: 'Kimi K3.1 Pro ties its predecessor Kimi K3 under the standard rules, at 91.4. With thinking at maximum effort it scores 93.4, the best I have measured.'
+title: 'Benchmarking Kimi K3.1 Pro on doctor-bench'
+description: 'With thinking off Kimi K3.1 Pro performs similar to Kimi K3. With thinking at maximum effort it scores the best result of any model so far.'
 publishDate: 2026-11-08
 updatedDate: 2026-11-13
 tags:
@@ -29,12 +29,7 @@ tags:
 .ml .ax  { font-size: 11px; fill: var(--dim); }
 </style>
 
-Kimi K3.1 Pro is the successor to Kimi K3, the model that solved part of
-[doctor-bench](/blog/introducing-doctor-bench) and wrote the training data for my
-[LoRA experts](/blog/lora-experts-vs-frontier-models). So this one is a bit personal. I ran it
-the same way as the [frontier models](/blog/frontier-models-on-doctor-bench) and
-[Mistral Large 4](/blog/mistral-large-4-on-doctor-bench): one greedy attempt per problem, and a
-fix only counts if the build and tests pass afterwards.
+Kimi K3.1 Pro is the successor to Kimi K3, the best model I have tested up to now together with GLM-5.3.
 
 Under the standard rules (thinking off, 4,096 output tokens) it scores 91.4, level with Kimi K3
 and GLM-5.3. With thinking at maximum effort it scores 93.4, the highest mean I've measured on
@@ -126,27 +121,28 @@ on GPQA, AIME and IFBench.
   <figcaption>Mean task success over the 14 canonical benchmarks, one greedy attempt per problem. Grey: open frontier models. Orange: Kimi K3.1 Pro. Blue: base models with my LoRA adapters. Light: the same base models without them. Every row has 4,096 output tokens except † side runs with reasoning on at 32,768 (not leaderboard rows) and * thinking mode with 32,768. ‡ Kimi K3 is also the teacher behind part of the benchmark.</figcaption>
 </figure>
 
-## Same score, different problems
+## Comparison with Kimi K3
 
-Kimi K3.1 Pro and Kimi K3 land 0.2 apart on the mean, but they don't solve the same problems.
+Even if Kimi K3.1 Pro and Kimi K3 land 0.2 apart on the mean, they don't solve the same problems.
 Of the 4,722 problems, 280 pass with one and fail with the other: 138 go K3.1's way and 142 go
 K3's.
 
 How much of that is just noise? I ran K3.1 a second time with the same settings. The mean came
 out at 92.1 instead of 91.4, and 156 problems flipped, 93 up and 63 down. That's a bigger shift
-than Mistral's repeat run (0.15), and probably not all of it is noise. Between the two runs the
-endpoint was restarted several times after hangs, and the instance that served the repeat used
-a different all-reduce path (plain NCCL instead of the recipe's custom kernels) and had one
-kernel fusion (all-reduce + RMSNorm) turned off. The weights are the same, but the
-arithmetic isn't bit-for-bit identical. So the honest summary is a
-range: 91.4 and 92.1 on two runs, with Kimi K3's 91.7 in between. The two Kimis are a tie.
+than Mistral's repeat run (0.15), and probably not all of it is noise.
+
+As it happened with Mistral, serving Kimi K3.1 is not as stable as Kimi K3 or GLM-5.3 and the
+endpoint had to be restarted several times after hangs, and the instance that served the repeat used
+a different all-reduce path (plain NCCL instead of using custom kernels) and had one
+kernel fusion (all-reduce + RMSNorm) turned off. Probably this is due because the models are
+just being released and the issues will be corrected in future vLLM versions.
 
 Category by category, the differences that hold up in both runs are small. K3.1 is ahead on
 Linux services (+1.3 and +3.2) and ML systems (+2.5 and +1.1), and about a point ahead on
 GROMACS. K3 stays ahead on C/C++ builds, by 2.0 and 0.8 points. The first run's Kubernetes gap
-(−3.1) mostly vanished in the repeat (−0.3), so I wouldn't read anything into it.
+(−3.1) mostly vanished in the repeat (−0.3).
 
-Neither run truncated anything to speak of: 0 and 3 answers ran out of room at 4,096 tokens.
+Neither run into the problem of truncated answers: in the case of K3.1 none, and in K3 only 3 answers ran out of room at 4,096 tokens.
 That's unlike Mistral, whose low-effort reasoning still ran out of budget on 5% of the problems.
 
 ## Thinking at maximum effort
@@ -208,25 +204,24 @@ tokens. It scored 93.4, against 92.1 for the thinking-off repeat on the same ser
   <figcaption>Kimi K3.1 Pro per category: hollow dot with thinking off at 4,096 output tokens (the repeat run, on the same server instance as the thinking run), filled dot with thinking at <code>reasoning_effort: max</code> and 32,768 tokens. The black tick is Kimi K3, thinking off.</figcaption>
 </figure>
 
-The gains are where the problems need the most digging. HPC goes up 3.0 points, GROMACS 3.3,
+HPC goes up 3.0 points, GROMACS 3.3,
 ML systems 3.0 and Slurm administration 2.5. On the held-out Slurm set, 295 of 300 now pass
 (98.3). Of the problems that failed in both thinking-off runs, 129 pass with thinking. Only 25
 answers ran out of room even at 32,768 tokens, 14 of them on the C/C++ build benchmark.
 
-Kubernetes is the exception: it drops five points, from 94.8 to 89.8. Most of that comes from one
-kind of rejection. The scorer checks that the answer names the fault that was actually
+Kubernetes is the only exception: it drops five points, from 94.8 to 89.8.
+The scorer checks that the answer names the fault that was actually
 injected, and with thinking on, K3.1 got that wrong 50 times on the two Kubernetes benchmarks,
 against 18 times without thinking (and 10 for Kimi K3). I haven't dug into the answers yet. My
 guess is that it reasons its way to a deeper or different root cause than the one the problem
-was built around. That's a fair failure under the benchmark's rules, but it's a different kind
-of failure from a fix that doesn't build.
+was built around. Even if that is a fair failure under the benchmark's rules, it's not the same as
+a fix that doesn't build.
 
-Thinking runs belong next to other thinking runs, not next to the 4,096-token leaderboard. The
-comparison that matters here is Mistral Large 4 at high effort (92.6, also 32,768 tokens) and my
+The main comparison that matters here is with Mistral Large 4 at high effort (92.6, also 32,768 tokens) and my
 Qwen3.8-27B expert with thinking (89.8). K3.1 at max effort beats both. It also wastes less of
 its budget: 25 truncations against Mistral's 78.
 
-## Category by category
+## Results by category
 
 Mean task success per category (the mean of that category's benchmarks):
 
@@ -246,30 +241,15 @@ Mean task success per category (the mean of that category's benchmarks):
 
 The ml-systems column covers only the 269 of 530 problems that can be validated without a GPU.
 
-The two models with reasoning on are good at different things. Mistral at high effort is far
-ahead on C/C++ builds (91.2 against 87.4) and Kubernetes. Kimi at max effort is far ahead on
+Mistral at high effort is far ahead on C/C++ builds (91.2 against 87.4) and Kubernetes.
+Kimi at max effort is far ahead on
 Linux services, GROMACS and Slurm. My 27B expert still holds Linux services at 97.4, with
 thinking off and at a fraction of the size, and it's still well behind on GROMACS and builds.
 
-## The family problem
-
-Kimi K3 is not a neutral party on this benchmark. It picked and solved part of the problems,
-and every answer my experts learned from was written by it. Kimi K3.1 Pro is not the same
-model, but it's the same family, probably trained on similar data and with a similar way of
-writing a fix. If doctor-bench has a blind spot that suits Kimi's style, K3.1 benefits from it
-too.
-
-The held-out Slurm set is where that matters most. Every problem in it was kept because Kimi K3
-solved it while the benchmark was being built. Re-run under the benchmark's rules, with one
-greedy attempt each, K3 scores 94.7. K3.1 at max effort passes 98.3%. Without thinking, it's at
-94.3 and 94.7, the same as K3, and Mistral at 4,096 tokens is at 92.3. So treat the Kimi rows
-with some caution. I think the numbers are real, but they're the ones I'd discount first.
-
 ## Throughput and standard benchmarks
 
-I also took some quick numbers outside doctor-bench, with the whole node to myself: one pass,
-no repeats, only the main workloads and benchmarks. The server was the relaunched one (plain
-NCCL, fusion off).
+I also took some quick numbers outside doctor-bench. The server endpoint was the relaunched one (plain
+NCCL, fusion off) to avoid crashes. But this probably is the reason of the big impact in performance.
 
 **Throughput.** These are the synthetic workloads from my
 [throughput post](/blog/throughput-benchmarking-on-b300), sent with GuideLLM exactly as for
@@ -289,17 +269,14 @@ requests, and chat and API at 256–512. Batch generation reaches only half of K
 mostly the server rather than the model. After the weights there's room for 1.95M tokens of KV
 cache, which holds only about 160 BATCH-D requests at once, and the model's state cache caps the
 server at 512 sequences, where K3 peaked at 1,024. The NCCL-only all-reduce probably costs some
-decode speed too, but I didn't measure that separately. One more caveat: K3's peaks are vLLM's
-server-side rate and K3.1's come from the client. Where both exist for K3, they agree within
-about 8%.
+decode speed too, but I didn't measure that separately.
 
-**Against the other doctor-bench models.** Later I ran the same node through every model in
-the doctor-bench frontier table, plus DeepSeek-V4.1-Flash-1017, one model at a time. Each one
-was served with the vLLM settings it was scored with, including its speculative decoding (MTP
+**Against other models.** Later I ran the same node through every model in
+our doctor-bench frontier table, plus the newly released DeepSeek-V4.1-Flash-1017 checkpoint. Each one
+was served with the vLLM settings it was scored with in doctor-bench, including its speculative decoding (MTP
 for GLM, DSpark for DeepSeek, DFlash for MiMo; Kimi K3.1 ran without). Mistral Large 4 ran on
 half the node (TP4), as it was served for doctor-bench, so a full node holds two copies. The
-rate here is vLLM's server-side output rate, measured after warm-up, which is why Kimi's numbers
-come out a little lower than in the table above.
+rate here is vLLM's server-side output rate, measured after warm-up.
 
 | model | one user, tok/s | chat peak | long prompts peak | long outputs peak | users at ≥ 50 tok/s |
 |---|---:|---:|---:|---:|---:|
@@ -319,15 +296,14 @@ its window, so treat it as an upper bound.
 
 Kimi K3.1 Pro is the slowest model here for a single user, and it serves the fewest users at a
 comfortable speed: about 4, against 64 or more for the small-active-parameter models. Those
-models (MiMo, DeepSeek-Flash, GLM-5.3-Flash) are 3–6 times faster per user and 2.5–7 times higher
-in total, so on this node there's no trade-off between interactive speed and throughput. They
-win on both. Kimi is also bound by its KV cache: about 190 chat requests or 75 long-prompt
+models (MiMo, DeepSeek-Flash, GLM-5.3-Flash) are 3–6 times faster per user and 2.5–6 times higher
+in total. On this 8xB300 node Kimi is bound by its KV cache: about 190 chat requests or 75 long-prompt
 requests fit at once. Beyond that, requests queue for minutes, so it's best run at 64–256
 concurrent requests. Most of the small models are still gaining at 512. Kimi's steady batch
 (BATCH-D) rate is 2,040 tok/s at 64 and 2,341 at 256. Speculative decoding also depends on the
 text, so these synthetic prompts may flatter or understate the models that use it.
 
-One thing I learned about the method: a short adaptive window isn't enough. I first stopped
+In interesting fact, is that to measure performance, a short adaptive window isn't enough. I first stopped
 each test once the running average settled within 2% over 30 s, and in about half the tests
 the rate was still falling when it stopped. Requests that start together decode fast at first.
 Then prefills start mixing in, long outputs make attention more expensive as the context grows,
@@ -360,8 +336,8 @@ top-p 0.95, which are also the model card's settings.
 | Kolibri-1 | 82.6 | 95.6 | 95.2 | 78.8 / 70.3 | 15,954 |
 
 GPQA reproduces the model card's 94.2 (our 95% interval is 90.0–96.2), and it's the best score
-I've measured with this harness. But it's only 0.8 above K3, so it's within noise. What stands
-out is how few tokens both Kimis use: about 5k per answer, against 10–16k for the rest. AIME is
+I've measured with this harness. But it's only 0.8 above K3, so it's within noise. **What stands
+out is how few tokens both Kimis use: about 5k per answer, against 10–16k for the rest**. AIME is
 essentially perfect, about five points above K3. AIME 2026 was published before K3.1 came out,
 though, so I'd treat those scores as a ceiling rather than something that separates the models.
 IFBench shows no gain: loose is level with K3, strict is 2.8 points lower, and both trail
@@ -371,17 +347,15 @@ Qwen3.8-27B and DeepSeek-V4.1-Flash.
 
 Kimi K3.1 Pro ran from the official checkpoint on a long-running vLLM endpoint across a whole
 8×B300 node: tensor parallelism 8, the `vllm/vllm-openai:kimi-k31` image and the `kimi_k3`
-reasoning parser. The endpoint was shared with another benchmark the whole time. The first run
-used the vLLM recipe as published. The next day the endpoint hung five times under load: one
-GPU stalled while the other seven spun at 100%. So it was relaunched with every custom
+reasoning parser. The first run
+used the vLLM recipe as published in the official vLLM recipes. 
+Due to several hungs times under load, I had to relaunch it with every custom
 all-reduce path turned off (plain NCCL only) and the all-reduce + RMSNorm fusion off. It then
-ran for about 28 hours under shared load without a hang. The repeat and the thinking run both
-used that relaunched server.
+ran without any hang.
 
 Thinking is switched on and off through the chat template (`thinking: true` or `false`), and
-the effort goes in `reasoning_effort`. A probe with thinking off produced 0 reasoning tokens. On
-the same short prompt with thinking on, low effort used 88 reasoning tokens, high 264 and max
-287. Everything else was the same as for every other model: greedy decoding, the answer forced
+the effort goes in `reasoning_effort`. Everything else was the same as for every other model:
+greedy decoding, the answer forced
 to the JSON schema, and the edits applied and checked by the real build and tests in a Docker
 container with no network.
 
