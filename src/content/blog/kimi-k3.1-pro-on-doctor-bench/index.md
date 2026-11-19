@@ -2,7 +2,7 @@
 title: 'Benchmarking Kimi K3.1 Pro on doctor-bench'
 description: 'With thinking off Kimi K3.1 Pro performs similar to Kimi K3. With thinking at maximum effort it scores the best result of any model so far.'
 publishDate: 2026-11-08
-updatedDate: 2026-11-13
+updatedDate: 2026-11-14
 tags:
   - ai
   - llm
@@ -280,19 +280,38 @@ rate here is vLLM's server-side output rate, measured after warm-up.
 
 | model | one user, tok/s | chat peak | long prompts peak | long outputs peak | users at ≥ 50 tok/s |
 |---|---:|---:|---:|---:|---:|
-| MiMo-V2.6-Flash | 461 | 13,654 at 512 | 9,148 at 256 | 17,427 at 512 | ~100 |
+| MiMo-V2.6-Flash | 461 | 13,654 at 512 | 9,148 at 256 | 21,284 at 128 | ~100 |
 | MiMo-V2.6-Pro | 333 | 8,273 at 512 | 4,633 at 256 | 14,611 at 512 | 64 |
 | DeepSeek-V4.1-Flash-1017 | 324 | 5,983 at 256 | 5,275 at 256 | 11,077 at 256 | 64 |
+| DeepSeek-V4.1-Flash-1017, tuned * | – | 10,398 at 512 | 7,266 at 256 | 20,008 at 512 | – |
 | GLM-5.3-Flash | 264 | 6,442 at 512 | 3,359 at 256 | 9,625 at 512 | 64 |
-| Muse-Spark-Open | 179 | 6,934 at 512 | 3,926 at 256 * | 6,843 at 512 | ~32 |
+| Muse-Spark-Open | 179 | 6,934 at 512 | ≈4,000 at 256 | 6,843 at 512 | ~32 |
 | GLM-5.3 | 204 | 4,390 at 512 | 1,814 at 64 | 4,832 at 512 | 16–32 |
 | Mistral Large 4, half node | 106 | 2,276 at 256 | 1,220 at 64 | 3,794 at 256 | 16 |
 | **Kimi K3.1 Pro** | **73** | **2,343 at 256** | **1,405 at 64** | **2,341 at 256** | **4** |
+| Kimi K3.1 Pro + DSpark † | 153 | 1,572 at 64 | 1,196 at 64 | 2,521 at 64 | 16 |
 
 Chat is 2k → 512 tokens (CHAT-S), long prompts are 16k → 2k (CODE-I), and long outputs are 4k → 8k (BATCH-D).
 "One user" is chat at concurrency 1. "Users at ≥ 50 tok/s" is how many concurrent chat requests still each get 50
-tok/s with time to first token under about half a second. \* Muse's long-prompt rate was still falling at the end of
-its window, so treat it as an upper bound.
+tok/s with time to first token under about half a second. \* Up to 512 concurrent sequences with CUDA graphs captured up
+to 3,072 tokens, instead of the recipe's 128 and 1,024; see below. † Speculative decoding, limited to 64 sequences.
+
+Here is where Kimi's "users at ≥ 50 tok/s" figure comes from: the chat test at each concurrency, giving the output
+speed each request sees and the median time to first token.
+
+| Kimi K3.1 Pro, chat | 1 request | 4 requests | 16 requests | 64 requests |
+|---|---:|---:|---:|---:|
+| standard | 73 tok/s, 0.25 s | 86 tok/s, 0.75 s | 48 tok/s, 1 s | 28 tok/s, 5 s |
+| with DSpark | 153 tok/s, 0.25 s | 102 tok/s, 0.5 s | 55 tok/s, 0.5 s | 28 tok/s, 2.5 s |
+
+Speed per request is total output tok/s divided by the average number of running requests. Time to first token is the
+upper bound of a histogram bucket. Only these concurrencies were tested, so the real crossover lies between them:
+standard Kimi drops below 50 tok/s somewhere between 4 and 16 requests (48 at 16), and with DSpark it's still above 50
+at 16. DSpark doubles the speed at low load, and by 64 requests both are at 28 tok/s, though DSpark's first token
+comes twice as fast.
+
+Running Kimi K3.1 Pro with DSpark is not stable in the current version of vLLM, so the production endpoint stays on
+the standard configuration. These numbers come from a single benchmark session.
 
 Kimi K3.1 Pro is the slowest model here for a single user, and it serves the fewest users at a
 comfortable speed: about 4, against 64 or more for the small-active-parameter models. Those
@@ -312,15 +331,29 @@ and needs about two more to measure. For chat that's under two minutes. For 8k-t
 at high concurrency it's 10–45 minutes per test. So the tests that hadn't reached a steady
 rate were run again with long fixed windows, and the table above shows only steady values.
 
-Two more things came out of that final pass. Raising DeepSeek's limit from 128 to 512
-concurrent sequences doesn't raise its ceiling: chat at 512 goes from 6.0k to 8.5k tok/s, but
-long outputs with 256 running requests drop to about half. My guess is that its speculative
-decoding pushes large batches past the biggest CUDA graph, though I didn't verify that. And
-partway through, an automatic package upgrade restarted the GPU fabric manager on the node,
+The most useful finding of the last passes was about CUDA graphs. Raising DeepSeek's limit
+from 128 to 512 concurrent sequences on its own made things worse: long outputs with 256
+running requests dropped to about half. Its speculative decoding verifies 6 tokens per request
+per step, and vLLM captures CUDA graphs only up to 1,024 tokens by default, so beyond about 170
+requests every step runs without them. Capturing graphs up to 3,072 tokens fixed it. The same
+limit of 512 then gave 10.4k tok/s on chat and 20.0k on long outputs, almost twice the
+recipe's numbers. MiMo-V2.6-Flash and GLM-5.3-Flash show the same effect. With 8 and 6
+tokens per request, 128 requests still fit in the graphs and 256 don't, so at 256 their
+long-output rate halves (MiMo-Flash 21.3k at 128, 11.1k at 256), and at 512 it partly
+recovers. If you serve a model with speculative decoding at high concurrency, check
+`max_cudagraph_capture_size` against concurrency × (draft tokens + 1).
+
+Kimi K3.1 Pro with DSpark speculative decoding doubles single-user speed, from 73 to 153 tok/s
+(acceptance length 3.1–3.4). It holds total throughput up to 64 requests (1.6k on chat, 2.5k on
+long outputs). But the draft model takes memory, so it fits only 64 sequences, and the KV
+cache fills at about 40–55 requests. It suits a few interactive users better than a busy
+shared endpoint.
+
+Partway through, an automatic package upgrade restarted the GPU fabric manager on the node,
 which broke NVLS. The other models fall back to plain NCCL, and a repeat of one chat test per
 model came out within ±10% of the earlier run, so the comparison holds. Kimi K3.1 Pro doesn't
-fall back. One of its fused MoE kernels requires NVLS, so it won't start again until the
-fabric manager is restarted, and its speculative-decoding test will have to wait until then.
+fall back: one of its fused MoE kernels requires NVLS, so it couldn't start again until a
+reboot of the node restored NVLS.
 
 **Standard benchmarks.** These use the harness, prompts and settings from my
 [Kolibri-1 post](/blog/kolibri-1-benchmarks), with `reasoning_effort: max`, temperature 1.0 and
